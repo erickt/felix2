@@ -10,7 +10,6 @@ open Dyp
 open Lexing
 open Printf
 open Ocs_types
-open Sex_types
 open Flx_token
 open Flx_exceptions
 
@@ -1152,7 +1151,7 @@ top_statements:
       | Snull -> ()
       | _ ->
           (* Convert the statement into a s-expression. *)
-          dyp.global_data.handle_stmt (Ocs2sex.ocs2sex stmt)
+          dyp.global_data.handle_stmt (Flx_sexp.of_ocs stmt)
       end;
       (), [Keep_grammar; Local_data (dyp.last_local_data)]
    }

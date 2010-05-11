@@ -1,7 +1,14 @@
-open Sex_types
 open Ocs_types
 
-let rec ocs2sex = function
+type t =
+  | Int of string
+  | Str of string
+  | Sym of string
+  | Id of string
+  | Lst of t list
+
+(* Convert from ocs to an s-expression. *)
+let rec of_ocs = function
   | Sunbound -> failwith "unmapped ocs type Sunbound"
   | Seof -> failwith "unmapped ocs type Seof"
   | Sreal _ -> failwith "unmapped ocs type Sreal"
@@ -23,5 +30,5 @@ let rec ocs2sex = function
   | Ssymbol s -> Id s
   | Sint i -> Int (string_of_int i)
   | Sbigint i -> Int (Big_int.string_of_big_int i)
-  | Spair _ as s -> Lst (List.map ocs2sex (Ocs_misc.list_to_caml s))
-  | Svector a -> Lst (List.map ocs2sex (Array.to_list a))
+  | Spair _ as s -> Lst (List.map of_ocs (Ocs_misc.list_to_caml s))
+  | Svector a -> Lst (List.map of_ocs (Array.to_list a))

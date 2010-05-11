@@ -67,7 +67,7 @@ type local_data_t = {
 }
 
 type global_data_t = {
-  handle_stmt : Sex_types.t -> unit;
+  handle_stmt : Flx_sexp.t -> unit;
   pcounter : int ref;
   env : Ocs_types.env;
   pdebug : bool ref;
