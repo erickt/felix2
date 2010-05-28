@@ -3,7 +3,7 @@
 {
 
 (* parser header *)
-exception EndOfInput
+exception End_of_file
 
 open Batteries
 open Dyp
@@ -14,6 +14,10 @@ open Flx_token
 open Flx_exceptions
 
 module StringMap = Map.StringMap
+
+type parser_state_t = global_data_t * local_data_t
+
+type 'a lexbuf = 'a Dyp.dyplexbuf
 
 type action_t = [`Scheme of string | `None]
 type symbol_t = [`Atom of token_t | `Group of dyalt_t list]
@@ -44,6 +48,15 @@ let getsr dyp =
     s.pos_cnum - s.pos_bol + 1,
     e.pos_lnum,
     e.pos_cnum - e.pos_bol)
+
+let get_sr_from_lexbuf lexbuf =
+  let b = (Dyp.std_lexbuf lexbuf) in
+  let file = b.lex_start_p.pos_fname in
+  let start_line = b.lex_start_p.pos_lnum in
+  let start_col = b.lex_start_p.pos_cnum - b.lex_start_p.pos_bol in
+  let end_line = b.lex_curr_p.pos_lnum in
+  let end_col = b.lex_curr_p.pos_cnum - b.lex_curr_p.pos_bol in
+  Flx_srcref.make (file, start_line, start_col, end_line, end_col)
 
 let incr_lineno lexbuf n = 
   let lexbuf = Dyp.std_lexbuf lexbuf in
@@ -108,8 +121,9 @@ let init_env () =
   done;
   env
 
+(* These need to be defined otherwise dypgen sets them to () and it'll fail to
+ * compile. *)
 let global_data = {
-  handle_stmt = (fun stmt -> ());
   pcounter = ref 1;
   env = init_env ();
   pdebug = ref false;
@@ -121,8 +135,7 @@ let local_data = {
   Flx_token.scm = [];
 }
 
-let xsr sr =
-  let f, fl, fc, ll, lc = Flx_srcref.to_tuple sr in
+let xsr (f, fl, fc, ll, lc) =
   Ocs_misc.make_slist
     Snull
     ((Sint lc) :: (Sint ll) :: (Sint fc) :: (Sint ll) :: (Sstring f) :: [])
@@ -130,7 +143,7 @@ let xsr sr =
 let buffer_add_ocs b r = Ocs_print.print_to_buffer b false r
 
 let scheme_lex sr (s:string):sval =
-  let sr = Flx_srcref.short_string_of_src sr in
+  let sr = Flx_srcref.to_string sr in
   let inp = Ocs_port.string_input_port s in
   let lex = Ocs_lex.make_lexer inp sr in
   match Ocs_read.read_expr lex with
@@ -677,7 +690,8 @@ let dyp_merge_Obj_statement_star ol =
 %constructor Obj_sexpr %for sepsilon
 %constructor Obj_sexpr %for strepsilon
 
-%start <local_data_t> compilation_unit
+%start <parser_state_t * Flx_sexp.t list> implementation
+%start <parser_state_t * Flx_sexp.t option> toplevel_phrase
 
 %lexer
 
@@ -1040,7 +1054,9 @@ main lexer =
   over identifiers, eg r'x' is a string, not an identifier,
   but x'x' is an identifier .. yucky ..
 */
- identifier -> NAME { Flx_id.utf8_to_ucn (lexeme lexbuf) }
+ identifier -> NAME {
+   Flx_id.utf8_to_ucn (get_sr_from_lexbuf lexbuf) (lexeme lexbuf)
+ }
 
 /* whitespace */
  white+ -> { () }
@@ -1058,37 +1074,31 @@ main lexer =
 
 %parser
 
-compilation_unit:
-  | graminit top_statements ENDMARKER { 
-    (*
-    print_endline ("Returning syntax, loaded dssls = " ^ String.concat ","dyp.last_local_data.loaded_dssls);
-    print_endline ("Returning syntax, Schemes = " ^ string_of_int (List.length dyp.last_local_data.scm)); 
-    print_endline ("Returning syntax, Dssls = " ^ (StringMap.fold (fun k _ acc -> acc ^ " " ^ k) dyp.last_local_data.dssls ""));
-    *)
-    dyp.last_local_data }
+implementation:
+  | graminit top_statements ENDMARKER
+    { (dyp.global_data, dyp.last_local_data), List.rev $2 }
 
-graminit: @{
-    (*
-    print_endline "Parsing about to start";
-    *)
+toplevel_phrase:
+  | graminit top_statement
+    { (dyp.global_data, dyp.last_local_data), $2 }
+
+graminit:
+  | @{
     let m = dyp.local_data in
     let loaded_dssls = m.loaded_dssls in
     let scm = List.rev m.scm in
     let env = dyp.global_data.env in
-(*
-print_endline ("Doing scheme .. " ^ string_of_int (List.length scm) ^ " fragments");
-*)
-    List.iter (fun (sr,s) -> ignore (
-       (* print_endline ("Scheme: " ^ s); *)
-       try scheme_run sr env s
-       with Ocs_error.Error err | Ocs_error.ErrorL (_,err) ->
-         print_endline ("Error "^err^" executing " ^s);
-         failwith "Error executing SCHEME"
-      ))
-    scm;
-(*
-print_endline "Scheme Done .. ";
-*)
+
+    List.iter begin fun (sr,s) ->
+      ignore (
+        (* print_endline ("Scheme: " ^ s); *)
+        try scheme_run sr env s
+        with Ocs_error.Error err | Ocs_error.ErrorL (_,err) ->
+          print_endline ("Error "^err^" executing " ^s);
+          failwith "Error executing SCHEME"
+      )
+    end scm;
+
     (* calculate the transitive closure of DSSL's required *)
     let visited = ref [] in
     let to_install = ref [] in
@@ -1104,11 +1114,9 @@ print_endline "Scheme Done .. ";
         to_install := s :: !to_install
       end
     in
+
     List.iter cal_install loaded_dssls;
     let to_install = List.rev (!to_install) in
-(*
-    print_endline ("Installing " ^ cat "," to_install);
-*)
     let rules,prios =
       List.fold_left (fun (acc_rules, acc_prios) dssl ->
       let rules,prios =
@@ -1132,10 +1140,8 @@ print_endline "Scheme Done .. ";
       ) 
       rules 
     in
+
     let local_data = { m with loaded_dssls = to_install } in
-(*
-    print_endline ("Mounting Dssls = " ^ (StringMap.fold (fun k _ acc -> acc ^ " " ^ k) m.dssls ""));
-*)
     (),!bindings @ [Add_rules add_rules; Local_data local_data; Relation prios]
   }
 
@@ -1144,19 +1150,26 @@ tstatement:
 
 /* top level statements only */
 top_statements:
- | top_statements tstatement
-   @{
+  | top_statements tstatement
+    @{
       let seq,sr,stmt = $2 in
-      begin match stmt with
-      | Snull -> ()
-      | _ ->
-          (* Convert the statement into a s-expression. *)
-          dyp.global_data.handle_stmt (Flx_sexp.of_ocs stmt)
-      end;
-      (), [Keep_grammar; Local_data (dyp.last_local_data)]
-   }
+      let stmts =
+        match stmt with
+        | Snull -> $1
+        | _ -> Flx_sexp.of_ocs stmt :: $1
+      in
+      stmts, [Keep_grammar; Local_data (dyp.last_local_data)]
+    }
 
- | { () }
+  | { [] }
+
+top_statement:
+    tstatement
+    @{
+      let seq,sr,stmt = $1 in
+      (match stmt with Snull -> None | _ -> Some (Flx_sexp.of_ocs stmt)),
+      [Keep_grammar; Local_data (dyp.last_local_data)]
+    }
 
 /* inner statements only */
 sstatements: 
@@ -1642,86 +1655,67 @@ epsilon: | { () }
 %%
 
 {
-let dyphack (ls : ( 'a * string) list) : 'a =
-  match ls with
-  | [x,_] -> x
-  | _ -> failwith "Dypgen parser failed"
+let make_parser_state () = global_data, local_data
 
-let parse_lexbuf (handle_stmt, init, old_local_data) lexbuf =
-  let show_error () =
-    let b = (Dyp.std_lexbuf lexbuf) in
-    let file = b.lex_start_p.pos_fname in
-    let start_line = b.lex_start_p.pos_lnum in
-    let start_col = b.lex_start_p.pos_cnum - b.lex_start_p.pos_bol + 1 in
-    let end_line = b.lex_curr_p.pos_lnum in
-    let end_col = b.lex_curr_p.pos_cnum - b.lex_start_p.pos_bol in
-    let sr = Flx_srcref.make (file, start_line, start_col, end_line, end_col) in
-    print_endline (Flx_srcref.long_string_of_src sr);
-  in
-
-  (* Make the init a reference so that our handle_stmt function can update
-   * it. *)
-  let init = ref init in
-  let local_data =
-    try
-      dyphack (compilation_unit
-        ~local_data:old_local_data
-        ~global_data: { global_data with
-          handle_stmt = fun stmt -> init := handle_stmt stmt !init; }
-        lexbuf)
-    with
-    | Failure s ->
-        if Printexc.backtrace_status () then begin
-          print_endline (Printexc.get_backtrace ());
-        end;
-        print_endline ("Parse fail " ^ s);
-        show_error();
-
-        parse_error "Failure \"%s\" parsing file" s
-
-    | Flx_exceptions.ClientError (sr :: _, s) as error ->
-        if Printexc.backtrace_status () then begin
-          print_endline (Printexc.get_backtrace ());
-        end;
-
-        print_endline "Parse fail";
-        print_endline (Flx_srcref.long_string_of_src sr);
-        raise error
-
-    | Dyp.Syntax_error as error ->
-        show_error();
-        raise error
-
-    | Dyp.Bad_constructor (nt, ctor1, ctor2) ->
-        let s = sprintf "Bad constructor '%s' and '%s' for nonterminal '%s'"
-          ctor1
-          ctor2
-          nt
-        in
-        print_endline s;
-        failwith s
-  in
-  handle_stmt, !init, local_data
-
-let make_parser_state handle_stmt init = handle_stmt, init, local_data
-
-let parser_data (handle_stmt, init, local_data) = init
-
-let parse_channel ?(name="<channel>") parser_state channel =
+(** Make a lexbuf from a channel. *)
+let lexbuf_from_channel ?(name="<channel>") channel =
   let lexbuf = Dyp.from_channel (pp ()) channel in
   Dyp.set_fname lexbuf name;
-  parse_lexbuf parser_state lexbuf
+  lexbuf
+
+(** Make a lexbuf from a string. *)
+let lexbuf_from_string ?(name="<string>") str =
+  let lexbuf = Dyp.from_string (pp ()) str in
+  Dyp.set_fname lexbuf name;
+  lexbuf
+
+(** Make a lexbuf from a function. *)
+let lexbuf_from_function ?(name="<function>") f =
+  let lexbuf = Dyp.from_function (pp ()) f in
+  Dyp.set_fname lexbuf name;
+  lexbuf
+
+(** Clear the lexbuf. *)
+let flush_input lexbuf =
+  Dyp.flush_input lexbuf;
+  Dyp.set_newline lexbuf
+
+let wrap_parser f lexbuf =
+  try
+    begin match f lexbuf with
+    | [x,_] -> x
+    | _ -> failwith "Dypgen parser failed"
+    end
+  with
+  | Failure s ->
+      if Printexc.backtrace_status () then begin
+        eprintf "%s@." (Printexc.get_backtrace ());
+      end;
+
+      parse_error (get_sr_from_lexbuf lexbuf) "Failure \"%s\" parsing file" s
+
+  | Dyp.Syntax_error ->
+      if Printexc.backtrace_status () then begin
+        eprintf "%s@." (Printexc.get_backtrace ());
+      end;
+
+      syntax_error (get_sr_from_lexbuf lexbuf) "Syntax error"
+
+  | Dyp.Bad_constructor (nt, ctor1, ctor2) ->
+      failure "Bad constructor '%s' and '%s' for nonterminal '%s'"
+        ctor1
+        ctor2
+        nt
+
+let implementation (global_data, local_data)  lexbuf =
+  wrap_parser (implementation ~global_data ~local_data) lexbuf
+
+let toplevel_phrase (global_data, local_data) lexbuf =
+  wrap_parser (toplevel_phrase ~global_data ~local_data) lexbuf
 
 let parse_file ?(include_dirs=[]) parser_state name =
   let name = Flx_filesys.find_file ~include_dirs name in
-  Flx_filesys.with_file_in name (parse_channel ~name parser_state)
-
-let parse_string ?(name="<string>") parser_state str =
-  let lexbuf = Dyp.from_string (pp ()) str in
-  Dyp.set_fname lexbuf name;
-  parse_lexbuf parser_state lexbuf
-
-let parse_function ?(name="<function>") parser_state f =
-  let lexbuf = Dyp.from_function (pp ()) f in
-  parse_lexbuf parser_state lexbuf
+  Flx_filesys.with_file_in name begin fun channel ->
+    implementation parser_state (lexbuf_from_channel ~name channel)
+  end
 }

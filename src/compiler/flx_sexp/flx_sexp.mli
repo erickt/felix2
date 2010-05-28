@@ -7,3 +7,6 @@ type t =
 
 (* Convert from ocs to an s-expression. *)
 val of_ocs : Ocs_types.sval -> t
+
+(** Prints out the s-expression to the formatter. *)
+val print : Format.formatter -> t -> unit

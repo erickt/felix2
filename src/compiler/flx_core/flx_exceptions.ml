@@ -1,15 +1,22 @@
-exception LexError of string
-exception ParseError of string
-exception ClientError of Flx_srcref.t list * string
+exception Lex_error of Flx_srcref.t * string
+exception Parse_error of Flx_srcref.t * string
+exception Syntax_error of Flx_srcref.t * string
+exception Client_error of Flx_srcref.t list * string
 
-let lex_error format =
-  Format.ksprintf (fun s -> raise (LexError s)) format
+let failure format =
+  Format.ksprintf (fun s -> failwith s) format
 
-let parse_error format =
-  Format.ksprintf (fun s -> raise (ParseError s)) format
+let lex_error sr format =
+  Format.ksprintf (fun s -> raise (Lex_error (sr, s))) format
+
+let parse_error sr format =
+  Format.ksprintf (fun s -> raise (Parse_error (sr, s))) format
+
+let syntax_error sr format =
+  Format.ksprintf (fun s -> raise (Syntax_error (sr, s))) format
 
 let client_errorN srs format =
-  Format.ksprintf (fun s -> raise (ClientError (srs, s))) format
+  Format.ksprintf (fun s -> raise (Client_error (srs, s))) format
 
 let client_error sr format = client_errorN [sr] format
 

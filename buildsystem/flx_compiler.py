@@ -24,7 +24,9 @@ def build_flx_sexp(phase):
     dypgen = call('buildsystem.dypgen.build_exe', phase)
     return phase.ocaml.build_lib(path / 'flx_sexp',
         srcs=Path.glob(path / '*.ml{,i}'),
-        libs=[call('buildsystem.ocs.build_lib', phase)])
+        libs=[
+            call('buildsystem.ocs.build_lib', phase),
+            build_flx_misc(phase)])
 
 def build_flx_parse(phase):
     path = Path('src/compiler/flx_parse')
@@ -43,11 +45,24 @@ def build_flx_parse(phase):
         packages=['batteries'])
 
 def build_flx_drivers(ctx, phase):
-    path = Path('src', 'compiler', 'drivers')
+    path = Path('src/compiler/drivers')
 
-    flxp_libs = [
-        call('buildsystem.ocs.build_lib', phase),
-        call('buildsystem.dypgen.build_lib', phase),
-        build_flx_parse(phase)]
+    call('buildsystem.ocs.build_exe', phase)
 
-    return flxp_libs
+    lib = phase.ocaml.build_lib(path / 'flx_driver',
+        srcs=Path.glob(path / '*.ml{,i}'))
+
+    return {
+        'flxi': phase.ocaml.build_exe('bin/flxi',
+            srcs=Path(path / 'flxi' / '*.ml{,i}').glob(),
+            libs=[
+                call('buildsystem.dypgen.build_lib', phase),
+                call('buildsystem.ocs.build_lib', phase),
+                lib,
+                build_flx_misc(phase),
+                build_flx_core(phase),
+                build_flx_sexp(phase),
+                build_flx_parse(phase)],
+            flags=['-thread'],
+            external_libs=['batteries', 'threads'],
+            packages=['batteries']) }

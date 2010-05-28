@@ -255,21 +255,21 @@ let ucs_id_ranges = [
 ]
 
 exception Found
-let check_code x =
+let check_code sr x =
   try
     List.iter begin fun (first, last) ->
       if x < first then begin
-        Flx_exceptions.lex_error "Bad letter \\U%s in identifier" (hex8 x)
+        Flx_exceptions.lex_error sr "Bad letter \\U%s in identifier" (hex8 x)
       end;
 
       if x <= last
       then raise Found
     end ucs_id_ranges;
 
-    Flx_exceptions.lex_error "Bad letter \\U%s in identifier" (hex8 x)
+    Flx_exceptions.lex_error sr "Bad letter \\U%s in identifier" (hex8 x)
   with Found -> ()
 
-let utf8_to_ucn s =
+let utf8_to_ucn sr s =
   let s' = Buffer.create 1000 in
   let n = String.length s in
   let i = ref 0 in
@@ -322,7 +322,7 @@ let utf8_to_ucn s =
       if (u <> 0x27) (* apostrophe *)
       && (u <> 0x5F) (* underscore *)
       && ((u < 0x30) or (u > 0x39)) (* digits *)
-      then check_code u;
+      then check_code sr u;
       match u with
       | x when x < 127 && x >= 0x20 ->
         Buffer.add_char s' (char_of_int x)

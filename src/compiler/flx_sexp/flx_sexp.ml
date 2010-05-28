@@ -1,4 +1,5 @@
 open Ocs_types
+open Flx_format
 
 type t =
   | Int of string
@@ -32,3 +33,11 @@ let rec of_ocs = function
   | Sbigint i -> Int (Big_int.string_of_big_int i)
   | Spair _ as s -> Lst (List.map of_ocs (Ocs_misc.list_to_caml s))
   | Svector a -> Lst (List.map of_ocs (Array.to_list a))
+
+(** Prints out the s-expression to the formatter. *)
+let rec print ppf = function
+  | Int s -> print_variant1 ppf "Int" print_string s
+  | Str s -> print_variant1 ppf "Str" print_string s
+  | Sym s -> print_variant1 ppf "Sym" print_string s
+  | Id s -> print_variant1 ppf "Id" print_string s
+  | Lst ss -> print_variant1 ppf "Lst" (Flx_list.print print) ss

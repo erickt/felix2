@@ -1,0 +1,85 @@
+SCHEME """
+(load "src/lib/grammar.scm")
+""";
+
+// -----------------------------------------------------------------------------
+
+syntax expressions {
+  priority
+    let_pri
+  ;
+
+  sexpr := x[let_pri] =># "_1";
+
+  x[let_pri] := "let" spattern = x[let_pri] "in" x[let_pri] =>#
+    "`(ast_let (,_2 ,_4 ,_6))";
+
+  satom := sliteral =># "_1";
+
+/*
+  satom := _ =># "`ast_patany";
+  satom := "false" =># "`(ast_typed_case 0 2)";
+  satom := "true" =># "`(ast_typed_case 1 2)";
+
+  satom := lpar sexpr rpar =># "_2";
+  satom := lpar rpar =># "'()";
+*/
+}
+
+// -----------------------------------------------------------------------------
+
+/*
+syntax patterns {
+  spattern := sas_pattern "when" sexpr =># "`(pat_when ,_1 ,_3)";
+  spattern := sas_pattern =># "_1";
+
+  sas_pattern := stuple_pattern "as" sname => "`(pat_as ,_1 ,_3)";
+  sas_pattern := stuple_pattern =># "_1";
+
+  stuple_pattern := scoercive_pattern (, scoercive_pattern )* =>#
+    "(chain 'pat_tuple _1 _2)";
+
+  scoercive_pattern := satomic_pattern "|>" x[sarrow_pri] =>#
+    "`(pat_coercion ,_1 ,_3)";
+  scoercive_pattern := satomic_pattern =># "_1";
+
+  satomic_pattern := "false" =># "`(pat_const_ctor (ast_case_tag 0))";
+  satomic_pattern := "true" =># "`(pat_const_ctor (ast_case_tag 1))";
+  satomic_pattern := sname =># "`(pat_as pat_any ,_2)";
+  satomic_pattern := _ =># "`pat_any";
+  satomic_pattern := lpar spattern rpar =># "_2";
+}
+*/
+
+// -----------------------------------------------------------------------------
+
+syntax statements {
+  requires expressions;
+
+  tstatement := sexecutable =># "_1";
+}
+
+// -----------------------------------------------------------------------------
+
+syntax variables {
+  requires statements, executable;
+
+  sexecutable := sval_def =># "_1";
+  
+  sval_def := "val" sdeclname = sexpr ";" =>#
+    """
+    `(ast_val_decl ,_sr ,(car _2) ,(cdr _2) none (some ,_4))
+    """;
+}
+
+// -----------------------------------------------------------------------------
+
+syntax felix {
+  requires
+    statements,
+    variables,
+    expressions;
+}
+
+// -----------------------------------------------------------------------------
+
