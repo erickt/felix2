@@ -1680,6 +1680,7 @@ let flush_input lexbuf =
   Dyp.flush_input lexbuf;
   Dyp.set_newline lexbuf
 
+(** Helper function to handle error handling. *)
 let wrap_parser f lexbuf =
   try
     begin match f lexbuf with
@@ -1707,12 +1708,15 @@ let wrap_parser f lexbuf =
         ctor2
         nt
 
+(** Parse an implementation and return the new parser state. *)
 let implementation (global_data, local_data)  lexbuf =
   wrap_parser (implementation ~global_data ~local_data) lexbuf
 
+(** Parse a toplevel phrase and return the new parser state. *)
 let toplevel_phrase (global_data, local_data) lexbuf =
   wrap_parser (toplevel_phrase ~global_data ~local_data) lexbuf
 
+(** Parse a file and return the new parser state. *)
 let parse_file ?(include_dirs=[]) parser_state name =
   let name = Flx_filesys.find_file ~include_dirs name in
   Flx_filesys.with_file_in name begin fun channel ->
