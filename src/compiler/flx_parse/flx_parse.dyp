@@ -212,7 +212,7 @@ let define_scheme sr dyp dssl_record dssl name prio rhs scm =
   in
   let rule = name,(List.map f rhs),priority,[] in
 
-  let action = fun dyp2 avl ->
+  let action dyp2 avl =
     match avl,scm with
     (* optimise special case *)
     | [`Obj_sexpr (_,sr,s)],"_1" -> `Obj_sexpr (pr_age,sr,s),[]
