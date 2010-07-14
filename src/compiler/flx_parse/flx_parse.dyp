@@ -1658,19 +1658,19 @@ epsilon: | { () }
 let make_parser_state () = global_data, local_data
 
 (** Make a lexbuf from a channel. *)
-let lexbuf_from_channel ?(name="<channel>") channel =
+let lexbuf_from_channel ~name channel =
   let lexbuf = Dyp.from_channel (pp ()) channel in
   Dyp.set_fname lexbuf name;
   lexbuf
 
 (** Make a lexbuf from a string. *)
-let lexbuf_from_string ?(name="<string>") str =
+let lexbuf_from_string ~name str =
   let lexbuf = Dyp.from_string (pp ()) str in
   Dyp.set_fname lexbuf name;
   lexbuf
 
 (** Make a lexbuf from a function. *)
-let lexbuf_from_function ?(name="<function>") f =
+let lexbuf_from_function ~name f =
   let lexbuf = Dyp.from_function (pp ()) f in
   Dyp.set_fname lexbuf name;
   lexbuf
