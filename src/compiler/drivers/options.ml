@@ -1,10 +1,10 @@
 type phase_t =
-  | Parse
+  | Parse_ast
 
 let include_dirs = ref []
 let files = ref []
 let imports = ref []
-let phase = ref Parse
+let phase = ref Parse_ast
 let optimize = ref 0
 
 let parse_args usage =
@@ -13,12 +13,11 @@ let parse_args usage =
       "Add <dir> to the list of include directories");
     ("--import", Arg.String (fun i -> imports := i :: !imports),
       "Add <dir> to the list of include directories");
-      ("--phase", Arg.Symbol
-        (["parse"; "macro"; "desugar"; "bind"; "optimize"; "lower"; "compile";
-          "run"],
+      ("--phase", Arg.Symbol (["parse"],
         (function
-          | "parse" -> phase := Parse
           | _ -> ()
+          | "parse" -> phase := Parse_ast
+          | phase -> failwith ("unknown phase: " ^ phase)
         )), "Select phase of compilation to run";);
     ("-O", Arg.Set_int optimize, "Select optimization level")
   ] in

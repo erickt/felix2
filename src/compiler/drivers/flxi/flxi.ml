@@ -3,33 +3,28 @@
 open Batteries
 open Format
 
+open Flx_ast
+
 (* Preparse all the imported libraries. *)
-let parse_imports parser_state init imports =
-  let parser_state, stmts =
-    List.fold_left begin fun (parser_state, init) name ->
-      let parser_state, stmts =
-        Flx_parse.parse_file
-          ~include_dirs:!Options.include_dirs
-          parser_state
-          name
+let parse_imports parser_state imports handle_stmt =
+  let parser_state =
+    List.fold_left begin fun parser_state name ->
+      let parser_state, stmts = Flx_parse.parse_file
+        ~include_dirs:!Options.include_dirs
+        parser_state
+        name
       in
-      parser_state, stmts :: init
+      List.iter (handle_stmt ~print:false) stmts;
+      parser_state
     end
-    (parser_state, init)
+    parser_state
     (List.rev imports)
   in
-  parser_state, List.flatten stmts
+  parser_state
 
-(* Parse a statement and print it out. *)
-let parse_stmt stmt stmts =
-  match stmt with
-  | None -> stmts
-  | Some stmt ->
-      printf "... PARSED: %a@." Flx_sexp.print stmt;
-      stmt :: stmts
 
 (* Parse stdin *)
-let parse_stdin parser_state handle_stmt init =
+let parse_stdin parser_state handle_stmt =
   (* Create a buffer we'll save all our input to. *)
   let buffer = Buffer.create 512 in
 
@@ -46,7 +41,7 @@ let parse_stdin parser_state handle_stmt init =
   in
 
   (* Loop over each statement until we exit. *)
-  let rec aux parser_state init =
+  let rec aux parser_state =
     printf ">>> @?";
 
     match
@@ -55,7 +50,9 @@ let parse_stdin parser_state handle_stmt init =
           parser_state
           lexbuf
         in
-        Some (parser_state, handle_stmt stmt init)
+        handle_stmt ~print:true stmt;
+
+        Some parser_state
       with
       | Flx_exceptions.Syntax_error ((_,l1,c1,l2,c2) as sr, e) ->
           printf "@.%s@." (Flx_srcref.to_string sr);
@@ -67,17 +64,23 @@ let parse_stdin parser_state handle_stmt init =
           (* Ignore the rest of the line. *)
           Flx_parse.flush_input lexbuf;
 
-          Some (parser_state, init)
+          Some parser_state
 
       | IO.No_more_input ->
           None
       end
     with
-    | None -> init
-    | Some (parser_state, init) -> aux parser_state init
+    | None -> ()
+    | Some parser_state -> aux parser_state
   in
 
-  aux parser_state init
+  aux parser_state
+
+(* Parse a s-expression and print it out. *)
+let print_ast ~print ocs =
+  let sexp = Flx_sexp.of_ocs ocs in
+  if print then printf "... PARSED: %a@." Stmt.print (Flx_sexp.to_stmt sexp);
+  ()
 
 let main () =
   Options.parse_args "Usage: flxi <options> <files>\nOptions are:";
@@ -85,14 +88,22 @@ let main () =
   (* Create the state needed for parsing. *)
   let parser_state = Flx_parse.make_parser_state () in
 
+  let handle_stmt =
+    match !Options.phase with
+    | Options.Parse_scheme -> print_scheme
+    | Options.Parse_sexp -> print_sexp
+    | Options.Parse_ast -> print_ast
+  in
+
   (* Parse all the imported files. *)
-  let parser_state, stmts = parse_imports parser_state [] !Options.imports in
+  let parser_state = parse_imports
+    parser_state
+    !Options.imports
+    handle_stmt
+  in
 
   (* Parse stdin and compile the input. *)
-  begin match !Options.phase with
-  | Options.Parse ->
-      ignore (parse_stdin parser_state parse_stmt stmts)
-  end;
+  parse_stdin parser_state handle_stmt;
 
   (* Exit without error. *)
   0
