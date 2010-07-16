@@ -1,4 +1,7 @@
 %mltop {
+open Flx_token
+
+type parser_state_t = global_data_t * local_data_t
 }
 {
 
@@ -14,10 +17,6 @@ open Flx_token
 open Flx_exceptions
 
 module StringMap = Map.StringMap
-
-type parser_state_t = global_data_t * local_data_t
-
-type 'a lexbuf = 'a Dyp.dyplexbuf
 
 type action_t = [`Scheme of string | `None]
 type symbol_t = [`Atom of token_t | `Group of dyalt_t list]
@@ -690,8 +689,8 @@ let dyp_merge_Obj_statement_star ol =
 %constructor Obj_sexpr %for sepsilon
 %constructor Obj_sexpr %for strepsilon
 
-%start <parser_state_t * Flx_sexp.t list> implementation
-%start <parser_state_t * Flx_sexp.t option> toplevel_phrase
+%start <parser_state_t * Ocs_types.sval list> implementation
+%start <parser_state_t * Ocs_types.sval> toplevel_phrase
 
 %lexer
 
@@ -1153,11 +1152,7 @@ top_statements:
   | top_statements tstatement
     @{
       let seq,sr,stmt = $2 in
-      let stmts =
-        match stmt with
-        | Snull -> $1
-        | _ -> Flx_sexp.of_ocs stmt :: $1
-      in
+      let stmts = stmt :: $1 in
       stmts, [Keep_grammar; Local_data (dyp.last_local_data)]
     }
 
@@ -1167,8 +1162,7 @@ top_statement:
     tstatement
     @{
       let seq,sr,stmt = $1 in
-      (match stmt with Snull -> None | _ -> Some (Flx_sexp.of_ocs stmt)),
-      [Keep_grammar; Local_data (dyp.last_local_data)]
+      stmt, [Keep_grammar; Local_data (dyp.last_local_data)]
     }
 
 /* inner statements only */
@@ -1709,7 +1703,7 @@ let wrap_parser f lexbuf =
         nt
 
 (** Parse an implementation and return the new parser state. *)
-let implementation (global_data, local_data)  lexbuf =
+let implementation (global_data, local_data) lexbuf =
   wrap_parser (implementation ~global_data ~local_data) lexbuf
 
 (** Parse a toplevel phrase and return the new parser state. *)

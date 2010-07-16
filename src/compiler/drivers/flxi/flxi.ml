@@ -66,6 +66,14 @@ let parse_stdin parser_state handle_stmt =
 
           Some parser_state
 
+      | Flx_sexp.Sexp_error (sexp, e) ->
+          printf "Error: %s: %a@." e Flx_sexp.print sexp;
+
+          (* Ignore the rest of the line. *)
+          Flx_parse.flush_input lexbuf;
+
+          Some parser_state
+
       | IO.No_more_input ->
           None
       end
@@ -75,6 +83,16 @@ let parse_stdin parser_state handle_stmt =
   in
 
   aux parser_state
+
+(* Parse a scheme block and print it out. *)
+let print_scheme ~print ocs =
+  if print then printf "... PARSED: %s@." (Ocs_print.string_of_ocs ocs);
+  ()
+
+(* Parse a sexp block and print it out. *)
+let print_sexp ~print ocs =
+  if print then printf "... PARSED: %a@." Flx_sexp.print (Flx_sexp.of_ocs ocs);
+  ()
 
 (* Parse a s-expression and print it out. *)
 let print_ast ~print ocs =
