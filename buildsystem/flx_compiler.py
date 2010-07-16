@@ -35,7 +35,11 @@ def build_flx_parse(phase):
         srcs=Path.globall(
             path / '*.ml{,i}',
             dypgen(path / 'flx_parse.dyp',
-                flags=['--no-undef-nt', '--pv-obj', '--noemit-token-type'])),
+                flags=[
+                    '--no-mli',
+                    '--no-undef-nt',
+                    '--pv-obj',
+                    '--noemit-token-type'])),
         libs=[
             call('buildsystem.dypgen.build_lib', phase),
             call('buildsystem.ocs.build_lib', phase),

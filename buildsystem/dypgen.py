@@ -25,7 +25,7 @@ class Builder(fbuild.db.PersistentObject):
             src.copy(src_buildroot)
             src = src_buildroot
 
-        cmd = [self.exe, '--no-mli']
+        cmd = [self.exe]
         cmd.extend(flags)
         cmd.append(src)
 
