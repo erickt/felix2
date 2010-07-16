@@ -5,8 +5,8 @@ let print_string ppf s = fprintf ppf "%S" s
 
 let print_big_int ppf i = pp_print_string ppf (Big_int.string_of_big_int i)
 
-let print_opt p5lt ppf = function
-  | Some x -> fprintf ppf "Some %a" p5lt x
+let print_opt print_elt ppf = function
+  | Some x -> fprintf ppf "Some (%a)" print_elt x
   | None -> pp_print_string ppf "None"
 
 let print_items1 ppf = uncurry2  (fprintf ppf "%a")
