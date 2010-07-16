@@ -44,7 +44,7 @@ def build_flx_parse(phase):
             build_flx_sexp(phase)],
         packages=['batteries'])
 
-def build_flx_drivers(ctx, phase):
+def build_flx_drivers(phase):
     path = Path('src/compiler/drivers')
 
     call('buildsystem.ocs.build_exe', phase)
