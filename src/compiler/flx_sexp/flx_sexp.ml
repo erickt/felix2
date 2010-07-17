@@ -86,21 +86,29 @@ let to_literal = function
   | sexp -> error sexp "Invalid literal"
 
 let to_expr = function
+  (* <literal> *)
   | List [Id "ast_literal"; sr; literal] ->
       Expr.Literal (to_sr sr, to_literal literal)
+
+  (* a *)
   | List [Id "ast_name"; sr; Id name; List ts] ->
       (* Ignoring ts for the moment. *)
       Expr.Name (to_sr sr, name)
+
   | sexp -> error sexp "Invalid expression"
 
 let to_type = function
+  (* typedef foo *)
   | List [Id "ast_name"; sr; (Id name | Str name); List ts] ->
       (* Ignoring ts for the moment. *)
       Type.Name (to_sr sr, name)
+
   | sexp -> error sexp "Invalid type"
 
 let to_stmt = function
   | List [] -> Stmt.Noop (Flx_srcref.dummy_sr, "")
+
+  (* val a = <expr>; *)
   | List [Id "ast_val_decl"; sr; Str name; vs; typ; expr ] ->
       (* Ignoring type variables (vs) for now. *)
       Stmt.Val (
@@ -108,6 +116,7 @@ let to_stmt = function
         name,
         to_option to_type typ,
         to_option to_expr expr)
+
   | sexp -> error sexp "Invalid statement"
 
 (** Prints out the s-expression to the formatter. *)
