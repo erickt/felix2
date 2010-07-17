@@ -85,7 +85,18 @@ let to_literal = function
   | List [Id "ast_int"; Str s; i] -> Literal.Int (s, to_big_int i)
   | sexp -> error sexp "Invalid literal"
 
-let to_expr = function
+let rec to_expr = function
+  (* "foo" *)
+  | Str s ->
+      Expr.Literal (Flx_srcref.dummy_sr, Literal.String s)
+
+  (* () *)
+  | List [] ->
+      Expr.Tuple (Flx_srcref.dummy_sr, [])
+
+  (* (<expr>) *)
+  | List [expr] -> to_expr expr
+
   (* <literal> *)
   | List [Id "ast_literal"; sr; literal] ->
       Expr.Literal (to_sr sr, to_literal literal)
@@ -94,6 +105,14 @@ let to_expr = function
   | List [Id "ast_name"; sr; Id name; List ts] ->
       (* Ignoring ts for the moment. *)
       Expr.Name (to_sr sr, name)
+
+  (* <expr> + <expr> *)
+  | List [Id "ast_sum"; sr; List es] ->
+      Expr.Sum (to_sr sr, List.map to_expr es)
+
+  (* <expr> * <expr> *)
+  | List [Id "ast_product"; sr; List es] ->
+      Expr.Product (to_sr sr, List.map to_expr es)
 
   | sexp -> error sexp "Invalid expression"
 

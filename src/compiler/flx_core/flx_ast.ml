@@ -46,6 +46,7 @@ module Expr =
       | Tuple of Flx_srcref.t * t list
       | Name of Flx_srcref.t * string
       | Sum of Flx_srcref.t * t list
+      | Product of Flx_srcref.t * t list
 
     let rec print ppf = function
       | Literal (sr,lit) ->
@@ -64,6 +65,11 @@ module Expr =
           print_variant2 ppf "Sum"
             Flx_srcref.print sr
             (Flx_list.print print) es
+      | Product (sr,es) ->
+          print_variant2 ppf "Product"
+            Flx_srcref.print sr
+            (Flx_list.print print) es
+
   end
 
 module Stmt =
