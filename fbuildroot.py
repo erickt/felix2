@@ -3,6 +3,7 @@ from optparse import make_option
 
 import fbuild
 import fbuild.db
+import fbuild.target
 from fbuild.functools import call
 from fbuild.path import Path
 from fbuild.record import Record
@@ -354,12 +355,31 @@ def prefix(ctx):
 def src_dir(ctx):
     return Path(__file__).parent
 
-def build(ctx):
-    # configure the phases
+# ------------------------------------------------------------------------------
+
+def configure(ctx):
+    """Configure all the phases of the compiler."""
+
     build = config_build(ctx)
     host = config_host(ctx, build)
     target = config_target(ctx, host)
 
-    # --------------------------------------------------------------------------
+    return Record(build=build, host=host, target=target)
 
-    compilers = call('buildsystem.flx_compiler.build_flx_drivers', host)
+def build(ctx):
+    """Build the compiler and the runtime."""
+
+    phases = configure(ctx)
+    compilers = call('buildsystem.flx_compiler.build_flx_drivers', phases.host)
+
+# ------------------------------------------------------------------------------
+
+@fbuild.target.register()
+def test(ctx):
+    """Run the felix unit tests."""
+
+    # Make sure we build felix first.
+    build(ctx)
+
+    for src in Path.glob('tests/flxi/*.flx'):
+        call('buildsystem.test.test_flxi', ctx, src)
