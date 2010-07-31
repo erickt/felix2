@@ -4,7 +4,7 @@ type phase_t =
   | Parse_ast
 
 let include_dirs = ref []
-let files = ref []
+let args = ref []
 let imports = ref []
 let phase = ref Parse_ast
 let optimize = ref 0
@@ -27,5 +27,5 @@ let parse_args usage =
         )), "Select phase of compilation to run";);
     ("-O", Arg.Set_int optimize, "Select optimization level")
   ] in
-  let anonymous file = files := file :: !files in
+  let anonymous arg = args := arg :: !args in
   Arg.parse options anonymous usage

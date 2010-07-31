@@ -23,26 +23,24 @@ let parse_imports parser_state imports handle_stmt =
   parser_state
 
 
-(* Parse stdin *)
-let parse_stdin parser_state handle_stmt =
+(* Parse the channel *)
+let parse_channel ~name ~print parser_state handle_stmt channel args =
   (* Create a buffer we'll save all our input to. *)
   let buffer = Buffer.create 512 in
 
-  let lexbuf = Flx_parse.lexbuf_from_function 
-    ~name:"<input>"
+  let lexbuf = Flx_parse.lexbuf_from_function ~name
     begin fun s n ->
       (* Cache the line in our buffer so that we can do proper error
        * messages. *)
-      let n = input stdin s 0 n in
+      let n = input channel s 0 n in
       Buffer.add_substring buffer s 0 n;
-      Format.printf "read: %S@." (String.sub s 0 n);
       n
     end
   in
 
   (* Loop over each statement until we exit. *)
   let rec aux parser_state =
-    printf ">>> @?";
+    if print then printf ">>> @?";
 
     match
       begin try
@@ -84,6 +82,8 @@ let parse_stdin parser_state handle_stmt =
 
   aux parser_state
 
+
+
 (* Parse a scheme block and print it out. *)
 let print_scheme ~print ocs =
   if print then printf "... PARSED: %s@." (Ocs_print.string_of_ocs ocs);
@@ -120,8 +120,23 @@ let main () =
     handle_stmt
   in
 
-  (* Parse stdin and compile the input. *)
-  parse_stdin parser_state handle_stmt;
+  begin match !Options.args with
+  | [] ->
+      (* If no files were specified, parse stdin. *)
+      parse_channel
+        ~name:"<stdin>"
+        ~print:true
+        parser_state handle_stmt stdin [""]
+
+  | (name :: _) as args ->
+      (* Otherwise, parse the files. *)
+      File.with_file_in name begin fun file ->
+        parse_channel
+          ~name
+          ~print:false
+          parser_state handle_stmt file args
+      end
+  end;
 
   (* Exit without error. *)
   0

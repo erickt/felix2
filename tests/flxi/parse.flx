@@ -1,0 +1,6 @@
+// args: ["--phase", "parse"]
+open syntax felix;
+val a = 1;
+val b : int = 2;
+val c = 3 + 4;
+val d : int = 5 + 6;

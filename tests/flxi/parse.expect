@@ -1,0 +1,39 @@
+... PARSED: Noop (("[flx_srcref] generated", 0, 0, 0, 0), "")
+... PARSED: Val (
+             ("tests/flxi/parse.flx", 3, 1, 3, 3),
+             "a",
+             None,
+             Some (Literal (
+                    ("tests/flxi/parse.flx", 3, 9, 3, 3),
+                    Int ("int", 1))))
+... PARSED: Val (
+             ("tests/flxi/parse.flx", 4, 1, 4, 4),
+             "b",
+             Some (Name (("tests/flxi/parse.flx", 4, 9, 4, 4), "int")),
+             Some (Literal (
+                    ("tests/flxi/parse.flx", 4, 15, 4, 4),
+                    Int ("int", 2))))
+... PARSED: Val (
+             ("tests/flxi/parse.flx", 5, 1, 5, 5),
+             "c",
+             None,
+             Some (Sum (
+                    ("tests/flxi/parse.flx", 5, 9, 5, 5),
+                    [Literal (
+                      ("tests/flxi/parse.flx", 5, 9, 5, 5),
+                      Int ("int", 3));
+                     Literal (
+                      ("tests/flxi/parse.flx", 5, 13, 5, 5),
+                      Int ("int", 4))])))
+... PARSED: Val (
+             ("tests/flxi/parse.flx", 6, 1, 6, 6),
+             "d",
+             Some (Name (("tests/flxi/parse.flx", 6, 9, 6, 6), "int")),
+             Some (Sum (
+                    ("tests/flxi/parse.flx", 6, 15, 6, 6),
+                    [Literal (
+                      ("tests/flxi/parse.flx", 6, 15, 6, 6),
+                      Int ("int", 5));
+                     Literal (
+                      ("tests/flxi/parse.flx", 6, 19, 6, 6),
+                      Int ("int", 6))])))
