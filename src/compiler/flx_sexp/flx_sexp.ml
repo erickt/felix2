@@ -88,31 +88,31 @@ let to_literal = function
 let rec to_expr = function
   (* "foo" *)
   | Str s ->
-      Expr.Literal (Flx_srcref.dummy_sr, Literal.String s)
+      { Expr.sr=Flx_srcref.dummy_sr; desc=Expr.Literal (Literal.String s) }
 
   (* () *)
   | List [] ->
-      Expr.Tuple (Flx_srcref.dummy_sr, [])
+      { Expr.sr=Flx_srcref.dummy_sr; desc=Expr.Tuple [] }
 
   (* (<expr>) *)
   | List [expr] -> to_expr expr
 
   (* <literal> *)
   | List [Id "ast_literal"; sr; literal] ->
-      Expr.Literal (to_sr sr, to_literal literal)
+      { Expr.sr=to_sr sr; desc=Expr.Literal (to_literal literal) }
 
   (* a *)
   | List [Id "ast_name"; sr; Id name; List ts] ->
       (* Ignoring ts for the moment. *)
-      Expr.Name (to_sr sr, name)
+      { Expr.sr=to_sr sr; desc=Expr.Name name }
 
   (* <expr> + <expr> *)
   | List [Id "ast_sum"; sr; List es] ->
-      Expr.Sum (to_sr sr, List.map to_expr es)
+      { Expr.sr=to_sr sr; desc=Expr.Sum (List.map to_expr es) }
 
   (* <expr> * <expr> *)
   | List [Id "ast_product"; sr; List es] ->
-      Expr.Product (to_sr sr, List.map to_expr es)
+      { Expr.sr=to_sr sr; desc=Expr.Sum (List.map to_expr es) }
 
   | sexp -> error sexp "Invalid expression"
 
@@ -120,21 +120,21 @@ let to_type = function
   (* typedef foo *)
   | List [Id "ast_name"; sr; (Id name | Str name); List ts] ->
       (* Ignoring ts for the moment. *)
-      Type.Name (to_sr sr, name)
+      { Type.sr=to_sr sr; desc=Type.Name name }
 
   | sexp -> error sexp "Invalid type"
 
 let to_stmt = function
-  | List [] -> Stmt.Noop (Flx_srcref.dummy_sr, "")
+  | List [] -> { Stmt.sr=Flx_srcref.dummy_sr; desc=Stmt.Noop "" }
 
   (* val a = <expr>; *)
   | List [Id "ast_val_decl"; sr; Str name; vs; typ; expr ] ->
       (* Ignoring type variables (vs) for now. *)
-      Stmt.Val (
-        to_sr sr,
-        name,
-        to_option to_type typ,
-        to_option to_expr expr)
+      { Stmt.sr=to_sr sr;
+        desc=Stmt.Val (
+          name,
+          to_option to_type typ,
+          to_option to_expr expr) }
 
   | sexp -> error sexp "Invalid statement"
 
