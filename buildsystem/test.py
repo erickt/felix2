@@ -75,5 +75,4 @@ def check_expect(ctx, stdout, expect):
                 stdout.decode().split('\n'),
                 s.decode().split('\n')):
             ctx.logger.log(line)
-        dst.remove()
         return False
