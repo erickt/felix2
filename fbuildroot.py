@@ -35,6 +35,10 @@ def pre_options(parser):
             default=False,
             action='store_true',
             help='enable debugging for all phases'),
+        make_option('-p', '--profile',
+            default=False,
+            action='store_true',
+            help='enable profiling for all phases'),
         make_option('-O', '--optimize',
             default=False,
             action='store_true',
@@ -74,6 +78,10 @@ def pre_options(parser):
             default=False,
             action='store_true',
             help='turn on c/c++ build phase debugging'),
+        make_option('--build-c-profile',
+            default=False,
+            action='store_true',
+            help='turn on c/c++ build phase profiling'),
         make_option('--build-c-optimize',
             default=False,
             action='store_true',
@@ -109,6 +117,10 @@ def pre_options(parser):
             default=False,
             action='store_true',
             help='turn on c/c++ host phase debugging'),
+        make_option('--host-c-profile',
+            default=False,
+            action='store_true',
+            help='turn on c/c++ host phase profiling'),
         make_option('--host-c-optimize',
             default=False,
             action='store_true',
@@ -117,12 +129,22 @@ def pre_options(parser):
             default=False,
             action='store_true',
             help='turn on ocaml debugging'),
+        make_option('--host-ocaml-profile',
+            default=False,
+            action='store_true',
+            help='turn on ocaml profiling'),
         make_option('--host-ocamlc',
             help='specify the ocaml bytecode compiler'),
+        make_option('--host-ocamlcp',
+            help='specify the ocaml profiling bytecode compiler'),
         make_option('--host-ocamlopt',
             help='specify the ocaml native compiler'),
         make_option('--host-ocamllex',
             help='specify the ocaml lexer'),
+        make_option('--host-use-ocamlc',
+            default=False,
+            action='store_true',
+            help='specifically use ocamlc even if ocamlopt exists'),
         make_option('--host-llvm-config',
             help='specify the llvm-config script'),
     ))
@@ -151,6 +173,10 @@ def pre_options(parser):
             default=False,
             action='store_true',
             help='turn on c/c++ target phase debugging'),
+        make_option('--target-c-profile',
+            default=False,
+            action='store_true',
+            help='turn on c/c++ target phase profiling'),
         make_option('--target-c-optimize',
             default=False,
             action='store_true',
@@ -172,6 +198,9 @@ def post_options(options, args):
     else:
         options.buildroot = Path(options.buildroot, 'release')
 
+    if options.profile:
+        options.buildroot += '-profile'
+
     if options.optimize:
         options.buildroot += '-optimized'
 
@@ -179,14 +208,24 @@ def post_options(options, args):
 
 # ------------------------------------------------------------------------------
 
-def make_c_builder(ctx, *args, includes=[], libpaths=[], flags=[], **kwargs):
+def make_c_builder(ctx, *args,
+        includes=[],
+        libpaths=[],
+        flags=[],
+        profile=False,
+        **kwargs):
     flags = list(chain(ctx.options.c_flags, flags))
+
+    # profiling is incompatible with -fomit-frame-pointer
+    posix_optimize_flags = [ '-O3', '--inline']
+    if not profile:
+        posix_optimize_flags.append('-fomit-frame-pointer')
 
     kwargs['platform_options'] = [
         ({'posix'},
             {'warnings': ['all', 'fatal-errors'],
             'flags': ['-fno-common'] + flags,
-            'optimize_flags': ['-O3', '-fomit-frame-pointer', '--inline']}),
+            'optimize_flags': posix_optimize_flags}),
         ({'windows'}, {
             'flags': ['/GR', '/MD', '/EHs', '/wd4291'] + flags,
             'optimize_flags': ['/Ox']}),
@@ -198,14 +237,24 @@ def make_c_builder(ctx, *args, includes=[], libpaths=[], flags=[], **kwargs):
         static=call('fbuild.builders.c.guess_static', ctx, *args, **kwargs),
         shared=call('fbuild.builders.c.guess_shared', ctx, *args, **kwargs))
 
-def make_cxx_builder(ctx, *args, includes=[], libpaths=[], flags=[], **kwargs):
+def make_cxx_builder(ctx, *args,
+        includes=[],
+        libpaths=[],
+        flags=[],
+        profile=False,
+        **kwargs):
     flags = list(chain(ctx.options.c_flags, flags))
+
+    # profiling is incompatible with -fomit-frame-pointer
+    posix_optimize_flags = [ '-O3', '--inline']
+    if not profile:
+        posix_optimize_flags.append('-fomit-frame-pointer')
 
     kwargs['platform_options'] = [
         ({'posix'}, {
             'warnings': ['all', 'fatal-errors', 'no-invalid-offsetof'],
             'flags': ['-fno-common'] + flags,
-            'optimize_flags': ['-O3', '-fomit-frame-pointer', '--inline']}),
+            'optimize_flags': posix_optimize_flags}),
         ({'windows'}, {
             'flags': ['/GR', '/MD', '/EHs', '/wd4291'] + flags,
             'optimize_flags': ['/Ox']}),
@@ -229,6 +278,7 @@ def config_build(ctx):
         c=make_c_builder(ctx, ctx.options.build_cc,
             platform=platform,
             debug=ctx.options.debug or ctx.options.build_c_debug,
+            profile=ctx.options.profile or ctx.options.build_c_profile,
             optimize=ctx.options.optimize or ctx.options.build_c_optimize,
             includes=ctx.options.build_includes,
             libpaths=ctx.options.build_libpaths,
@@ -236,6 +286,7 @@ def config_build(ctx):
         cxx=make_cxx_builder(ctx, ctx.options.build_cxx,
             platform=platform,
             debug=ctx.options.debug or ctx.options.build_c_debug,
+            profile=ctx.options.profile or ctx.options.build_c_profile,
             optimize=ctx.options.optimize or ctx.options.build_c_optimize,
             includes=ctx.options.build_includes,
             libpaths=ctx.options.build_libpaths,
@@ -257,6 +308,7 @@ def config_host(ctx, build):
             c=make_c_builder(ctx, fbuild.builders.host_cc,
                 platform=platform,
                 debug=ctx.options.debug or ctx.options.host_c_debug,
+                profile=ctx.options.profile or ctx.options.host_c_profile,
                 optimize=ctx.options.optimize or
                     ctx.options.host_c_optimize,
                 includes=ctx.options.host_includes,
@@ -265,27 +317,36 @@ def config_host(ctx, build):
             cxx=make_cxx_builder(ctx, fbuild.buildesr.host_cxx,
                 platform=platform,
                 debug=ctx.options.debug or ctx.options.host_c_debug,
+                profile=ctx.options.profile or ctx.options.host_c_profile,
                 optimize=ctx.options.optimize or
                     ctx.options.host_c_optimize,
                 includes=ctx.options.host_includes,
                 libpaths=ctx.options.host_libpaths,
                 flags=ctx.options.host_c_flags))
 
-    phase.ocaml = call('fbuild.builders.ocaml.ocamlfind.Ocaml', ctx,
+    ocaml = call('fbuild.builders.ocaml.ocamlfind.Ocaml', ctx,
         debug=ctx.options.debug or ctx.options.host_ocaml_debug,
+        profile=ctx.options.profile or ctx.options.host_ocaml_profile,
         ocamlc=ctx.options.host_ocamlc,
+        ocamlcp=ctx.options.host_ocamlcp,
         ocamlopt=ctx.options.host_ocamlopt,
         flags=['-w', 'exYz', '-warn-error', 'FDPSU'],
         requires_at_least_version=(3, 11))
+
+    phase.ocamlc = ocaml.ocamlc
+    phase.ocamlcp = ocaml.ocamlcp
+    phase.ocamlopt = ocaml.ocamlopt
 
     phase.ocamllex = call('fbuild.builders.ocaml.Ocamllex', ctx,
         ctx.options.host_ocamllex)
 
     # we prefer the native ocaml as it's much faster
-    if hasattr(phase.ocaml, 'ocamlopt'):
-        phase.ocaml = phase.ocaml.ocamlopt
+    if not ctx.options.host_use_ocamlc and hasattr(ocaml, 'ocamlopt'):
+        phase.ocaml = phase.ocamlopt
+    elif ctx.options.profile or ctx.options.host_ocaml_profile:
+        phase.ocaml = phase.ocamlcp
     else:
-        phase.ocaml = phase.ocaml.ocamlc
+        phase.ocaml = phase.ocamlc
 
     # We optionally support llvm
     try:
@@ -318,6 +379,7 @@ def config_target(ctx, host):
             c=make_c_builder(ctx, ctx.options.target_cc,
                 platform=platform,
                 debug=ctx.options.debug or ctx.options.target_c_debug,
+                profile=ctx.options.profile or ctx.options.target_c_profile,
                 optimize=ctx.options.optimize or
                     ctx.options.target_c_optimize,
                 includes=ctx.options.target_includes,

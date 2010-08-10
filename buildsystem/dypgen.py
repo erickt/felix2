@@ -38,7 +38,11 @@ class Builder(fbuild.db.PersistentObject):
 
 def build_lib(phase):
     path = Path('src/compiler/dypgen/dyplib')
-    return phase.ocaml.build_lib(path/'dyp', Path.glob(path/'*.ml{,i}'))
+
+    # dyplib cannot be built with ocamlcp.
+    ocaml = phase.ocamlc if phase.ocaml == phase.ocamlcp else phase.ocaml
+
+    return ocaml.build_lib(path/'dyp', Path.glob(path/'*.ml{,i}'))
 
 def build_exe(phase):
     path = Path('src/compiler/dypgen/dypgen')
