@@ -66,11 +66,14 @@ type local_data_t = {
   scm : (Flx_srcref.t * string) list;
 }
 
-type global_data_t = {
+and global_data_t = {
+  handle_stmt: parser_state_t -> Flx_srcref.t -> Ocs_types.sval -> unit;
   pcounter : int ref;
   env : Ocs_types.env;
   pdebug : bool ref;
 }
+
+and parser_state_t = global_data_t * local_data_t
 
 (** An empty domain-specific sub-language. *)
 val empty_dssl : dssl_t

@@ -1,7 +1,5 @@
 %mltop {
 open Flx_token
-
-type parser_state_t = global_data_t * local_data_t
 }
 {
 
@@ -123,6 +121,7 @@ let init_env () =
 (* These need to be defined otherwise dypgen sets them to () and it'll fail to
  * compile. *)
 let global_data = {
+  handle_stmt = (fun parser_state sr stmt -> ());
   pcounter = ref 1;
   env = init_env ();
   pdebug = ref false;
@@ -689,8 +688,8 @@ let dyp_merge_Obj_statement_star ol =
 %constructor Obj_sexpr %for sepsilon
 %constructor Obj_sexpr %for strepsilon
 
-%start <parser_state_t * Ocs_types.sval list> implementation
-%start <parser_state_t * Ocs_types.sval> toplevel_phrase
+%start <parser_state_t> implementation
+%start <parser_state_t> toplevel
 
 %lexer
 
@@ -1075,11 +1074,11 @@ main lexer =
 
 implementation:
   | graminit top_statements ENDMARKER
-    { (dyp.global_data, dyp.last_local_data), List.rev $2 }
+    { (dyp.global_data, dyp.last_local_data) }
 
-toplevel_phrase:
-  | graminit top_statement
-    { (dyp.global_data, dyp.last_local_data), $2 }
+toplevel:
+  | graminit top_statements ENDMARKER
+    { (dyp.global_data, dyp.last_local_data) }
 
 graminit:
   | @{
@@ -1144,26 +1143,22 @@ graminit:
     (),!bindings @ [Add_rules add_rules; Local_data local_data; Relation prios]
   }
 
-tstatement:
-  | utstatement ";" @{ $1, [Keep_grammar; Local_data (dyp.last_local_data)] }
-
 /* top level statements only */
 top_statements:
   | top_statements tstatement
     @{
       let seq,sr,stmt = $2 in
-      let stmts = stmt :: $1 in
-      stmts, [Keep_grammar; Local_data (dyp.last_local_data)]
+      dyp.global_data.handle_stmt
+        (dyp.global_data, dyp.last_local_data)
+        sr
+        stmt;
+      (), [ Keep_grammar; Local_data (dyp.last_local_data) ]
     }
 
-  | { [] }
+  | { () }
 
-top_statement:
-    tstatement
-    @{
-      let seq,sr,stmt = $1 in
-      stmt, [Keep_grammar; Local_data (dyp.last_local_data)]
-    }
+tstatement:
+  | utstatement ";" @{ $1, [Keep_grammar; Local_data (dyp.last_local_data)] }
 
 /* inner statements only */
 sstatements: 
@@ -1703,17 +1698,30 @@ let wrap_parser f lexbuf =
         nt
 
 (** Parse an implementation and return the new parser state. *)
-let implementation (global_data, local_data) lexbuf =
-  wrap_parser (implementation ~global_data ~local_data) lexbuf
+let implementation (global_data, local_data) handle_stmt lexbuf =
+  let global_data = { global_data with handle_stmt=handle_stmt } in
+  let parser_state = wrap_parser
+    (implementation ~global_data ~local_data)
+    lexbuf
+  in
+  parser_state
 
 (** Parse a toplevel phrase and return the new parser state. *)
-let toplevel_phrase (global_data, local_data) lexbuf =
-  wrap_parser (toplevel_phrase ~global_data ~local_data) lexbuf
+let toplevel (global_data, local_data) handle_stmt lexbuf =
+  let global_data = { global_data with handle_stmt=handle_stmt } in
+  let parser_state = wrap_parser
+    (toplevel ~global_data ~local_data)
+    lexbuf
+  in
+  parser_state
 
 (** Parse a file and return the new parser state. *)
-let parse_file ?(include_dirs=[]) parser_state name =
+let parse_file ?(include_dirs=[]) parser_state handle_stmt name =
   let name = Flx_filesys.find_file ~include_dirs name in
   Flx_filesys.with_file_in name begin fun channel ->
-    implementation parser_state (lexbuf_from_channel ~name channel)
+    implementation
+      parser_state
+      handle_stmt
+      (lexbuf_from_channel ~name channel)
   end
 }
