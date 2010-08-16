@@ -60,21 +60,6 @@ type dssl_t = {
   privacy : string Map.StringMap.t; (* string -> string *)
 }
 
-type local_data_t = {
-  dssls : dssl_t Map.StringMap.t;
-  loaded_dssls : string list;
-  scm : (Flx_srcref.t * string) list;
-}
-
-and global_data_t = {
-  handle_stmt: parser_state_t -> Flx_srcref.t -> Ocs_types.sval -> unit;
-  pcounter : int ref;
-  env : Ocs_types.env;
-  pdebug : bool ref;
-}
-
-and parser_state_t = global_data_t * local_data_t
-
 (** An empty domain-specific sub-language. *)
 let empty_dssl =
   { prios = [];

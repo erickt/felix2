@@ -1,5 +1,21 @@
 %mltop {
+open Batteries
 open Flx_token
+
+type local_data_t = {
+  dssls : dssl_t Map.StringMap.t;
+  loaded_dssls : string list;
+  scm : (Flx_srcref.t * string) list;
+}
+
+type global_data_t = {
+  handle_stmt: parser_state_t -> Flx_srcref.t -> Ocs_types.sval -> unit;
+  pcounter : int ref;
+  env : Ocs_types.env;
+  pdebug : bool ref;
+}
+
+and parser_state_t = global_data_t * local_data_t
 }
 {
 
@@ -128,9 +144,9 @@ let global_data = {
 }
 
 let local_data = {
-  Flx_token.dssls = StringMap.empty;
-  Flx_token.loaded_dssls = [];
-  Flx_token.scm = [];
+  dssls = StringMap.empty;
+  loaded_dssls = [];
+  scm = [];
 }
 
 let xsr (f, fl, fc, ll, lc) =
@@ -1646,11 +1662,13 @@ epsilon: | { () }
 {
 let make_parser_state () = global_data, local_data
 
+
 (** Make a lexbuf from a channel. *)
 let lexbuf_from_channel ~name channel =
   let lexbuf = Dyp.from_channel (pp ()) channel in
   Dyp.set_fname lexbuf name;
   lexbuf
+
 
 (** Make a lexbuf from a string. *)
 let lexbuf_from_string ~name str =
@@ -1658,11 +1676,13 @@ let lexbuf_from_string ~name str =
   Dyp.set_fname lexbuf name;
   lexbuf
 
+
 (** Make a lexbuf from a function. *)
 let lexbuf_from_function ~name f =
   let lexbuf = Dyp.from_function (pp ()) f in
   Dyp.set_fname lexbuf name;
   lexbuf
+
 
 (** Clear the lexbuf. *)
 let flush_input lexbuf =
@@ -1697,6 +1717,7 @@ let wrap_parser f lexbuf =
         ctor2
         nt
 
+
 (** Parse an implementation and return the new parser state. *)
 let implementation (global_data, local_data) handle_stmt lexbuf =
   let global_data = { global_data with handle_stmt=handle_stmt } in
@@ -1706,6 +1727,7 @@ let implementation (global_data, local_data) handle_stmt lexbuf =
   in
   parser_state
 
+
 (** Parse a toplevel phrase and return the new parser state. *)
 let toplevel (global_data, local_data) handle_stmt lexbuf =
   let global_data = { global_data with handle_stmt=handle_stmt } in
@@ -1714,6 +1736,7 @@ let toplevel (global_data, local_data) handle_stmt lexbuf =
     lexbuf
   in
   parser_state
+
 
 (** Parse a file and return the new parser state. *)
 let parse_file ?(include_dirs=[]) parser_state handle_stmt name =

@@ -104,7 +104,7 @@ let parse_channel ~name ~print parser_state handle_stmt channel args =
       end
     with
     | None -> ()
-    | Some (parser_state) -> aux parser_state
+    | Some parser_state -> aux parser_state
   in
 
   aux parser_state
@@ -122,7 +122,7 @@ let print_sexp ~print sr ocs =
 
 (* Parse a s-expression and print it out. *)
 let print_ast ~print sr ocs =
-  Flx_profile.call "print_ast" begin fun () ->
+  Flx_profile.call "Flxi.print_ast" begin fun () ->
     let sexp = Flx_sexp.of_ocs ocs in
     if print then printf "PARSED: %a@." Stmt.print (Flx_sexp.to_stmt sexp);
     ()
@@ -143,7 +143,7 @@ let main () =
 
   (* Parse all the imported files. *)
   let parser_state =
-    Flx_profile.call "parse_imports" begin fun () ->
+    Flx_profile.call "Flxi.parse_imports" begin fun () ->
       parse_imports parser_state !Options.imports handle_stmt
     end
   in
@@ -151,18 +151,22 @@ let main () =
   begin match !Options.args with
   | [] ->
       (* If no files were specified, parse stdin. *)
-      parse_channel
-        ~name:"<stdin>"
-        ~print:true
-        parser_state handle_stmt stdin [""]
+      Flx_profile.call "Flxi.parse_channel" begin fun () ->
+        parse_channel
+          ~name:"<stdin>"
+          ~print:true
+          parser_state handle_stmt stdin [""]
+      end
 
   | (name :: _) as args ->
       (* Otherwise, parse the files. *)
       File.with_file_in name begin fun file ->
-        parse_channel
-          ~name
-          ~print:false
-          parser_state handle_stmt file args
+        Flx_profile.call "Flxi.parse_channel" begin fun () ->
+          parse_channel
+            ~name
+            ~print:false
+            parser_state handle_stmt file args
+        end
       end
   end;
 
