@@ -29,7 +29,6 @@ def build_flx_parse(phase):
                 flags=[
                     '--no-mli',
                     '--no-undef-nt',
-                    '--pv-obj',
                     '--noemit-token-type'])),
         libs=[
             call('buildsystem.dypgen.build_lib', phase),
