@@ -136,17 +136,17 @@ let init_env () =
 
 (* These need to be defined otherwise dypgen sets them to () and it'll fail to
  * compile. *)
+let local_data = {
+  dssls = StringMap.empty;
+  loaded_dssls = [];
+  scm = [];
+}
+
 let global_data = {
   handle_stmt = (fun parser_state sr stmt -> ());
   pcounter = ref 1;
   env = init_env ();
   pdebug = ref false;
-}
-
-let local_data = {
-  dssls = StringMap.empty;
-  loaded_dssls = [];
-  scm = [];
 }
 
 let xsr (f, fl, fc, ll, lc) =
@@ -610,7 +610,7 @@ let dyp_merge_Obj_statement_star ol =
 
 
 /* special */
-%token <(Flx_srcref.t * string)> ERRORTOKEN
+%token ERRORTOKEN
 %token ENDMARKER
 
 /* whitespace and comments */
@@ -704,8 +704,8 @@ let dyp_merge_Obj_statement_star ol =
 %constructor Obj_sexpr %for sepsilon
 %constructor Obj_sexpr %for strepsilon
 
-%start <parser_state_t> implementation
-%start <parser_state_t> toplevel
+%start implementation
+%start toplevel
 
 %lexer
 
@@ -1661,6 +1661,10 @@ epsilon: | { () }
 
 {
 let make_parser_state () = global_data, local_data
+
+
+(** Profile the pp function. *)
+let pp () = Flx_profile.call "Flx_parse.pp" pp
 
 
 (** Make a lexbuf from a channel. *)
