@@ -1,159 +1,131 @@
-... PARSED: List []
-... PARSED: List
-             [Id "ast_val_decl";
+PARSED: List []
+PARSED: List
+         [Id "ast_val_decl";
+          List [Str "tests/flxi/parse_sexp.flx"; Int 3; Int 1; Int 3; Int 10];
+          Str "a";
+          List
+           [List [];
+            List
+             [List
+               [Id "ast_tuple";
+                List [Str "dummy"; Int 0; Int 0; Int 0; Int 0];
+                List []];
+              List []]];
+          Id "none";
+          List
+           [Id "some";
+            List
+             [Id "ast_literal";
               List
-               [Str "tests/flxi/parse_sexp.flx"; Int 3; Int 1; Int 3; Int 10];
-              Str "a";
+               [Str "tests/flxi/parse_sexp.flx"; Int 3; Int 9; Int 3; Int 9];
+              List [Id "ast_int"; Str "int"; Str "1"]]]]
+PARSED: List
+         [Id "ast_val_decl";
+          List [Str "tests/flxi/parse_sexp.flx"; Int 4; Int 1; Int 4; Int 16];
+          Str "b";
+          List
+           [List [];
+            List
+             [List
+               [Id "ast_tuple";
+                List [Str "dummy"; Int 0; Int 0; Int 0; Int 0];
+                List []];
+              List []]];
+          List
+           [Id "some";
+            List
+             [Id "ast_name";
               List
-               [List [];
-                List
-                 [List
-                   [Id "ast_tuple";
-                    List [Str "dummy"; Int 0; Int 0; Int 0; Int 0];
-                    List []];
-                  List []]];
-              Id "none";
+               [Str "tests/flxi/parse_sexp.flx"; Int 4; Int 9; Int 4; Int 11];
+              Str "int";
+              List []]];
+          List
+           [Id "some";
+            List
+             [Id "ast_literal";
               List
-               [Id "some";
-                List
+               [Str "tests/flxi/parse_sexp.flx"; Int 4; Int 15; Int 4; Int 15];
+              List [Id "ast_int"; Str "int"; Str "2"]]]]
+PARSED: List
+         [Id "ast_val_decl";
+          List [Str "tests/flxi/parse_sexp.flx"; Int 5; Int 1; Int 5; Int 14];
+          Str "c";
+          List
+           [List [];
+            List
+             [List
+               [Id "ast_tuple";
+                List [Str "dummy"; Int 0; Int 0; Int 0; Int 0];
+                List []];
+              List []]];
+          Id "none";
+          List
+           [Id "some";
+            List
+             [Id "ast_sum";
+              List
+               [Str "tests/flxi/parse_sexp.flx"; Int 5; Int 9; Int 5; Int 13];
+              List
+               [List
                  [Id "ast_literal";
-                  List
-                   [Str "tests/flxi/parse_sexp.flx";
-                    Int 3;
-                    Int 9;
-                    Int 3;
-                    Int 9];
-                  List [Id "ast_int"; Str "int"; Str "1"]]]]
-... PARSED: List
-             [Id "ast_val_decl";
-              List
-               [Str "tests/flxi/parse_sexp.flx"; Int 4; Int 1; Int 4; Int 16];
-              Str "b";
-              List
-               [List [];
-                List
-                 [List
-                   [Id "ast_tuple";
-                    List [Str "dummy"; Int 0; Int 0; Int 0; Int 0];
-                    List []];
-                  List []]];
-              List
-               [Id "some";
-                List
-                 [Id "ast_name";
-                  List
-                   [Str "tests/flxi/parse_sexp.flx";
-                    Int 4;
-                    Int 9;
-                    Int 4;
-                    Int 11];
-                  Str "int";
-                  List []]];
-              List
-               [Id "some";
-                List
-                 [Id "ast_literal";
-                  List
-                   [Str "tests/flxi/parse_sexp.flx";
-                    Int 4;
-                    Int 15;
-                    Int 4;
-                    Int 15];
-                  List [Id "ast_int"; Str "int"; Str "2"]]]]
-... PARSED: List
-             [Id "ast_val_decl";
-              List
-               [Str "tests/flxi/parse_sexp.flx"; Int 5; Int 1; Int 5; Int 14];
-              Str "c";
-              List
-               [List [];
-                List
-                 [List
-                   [Id "ast_tuple";
-                    List [Str "dummy"; Int 0; Int 0; Int 0; Int 0];
-                    List []];
-                  List []]];
-              Id "none";
-              List
-               [Id "some";
-                List
-                 [Id "ast_sum";
                   List
                    [Str "tests/flxi/parse_sexp.flx";
                     Int 5;
                     Int 9;
+                    Int 5;
+                    Int 9];
+                  List [Id "ast_int"; Str "int"; Str "3"]];
+                List
+                 [Id "ast_literal";
+                  List
+                   [Str "tests/flxi/parse_sexp.flx";
+                    Int 5;
+                    Int 13;
                     Int 5;
                     Int 13];
-                  List
-                   [List
-                     [Id "ast_literal";
-                      List
-                       [Str "tests/flxi/parse_sexp.flx";
-                        Int 5;
-                        Int 9;
-                        Int 5;
-                        Int 9];
-                      List [Id "ast_int"; Str "int"; Str "3"]];
-                    List
-                     [Id "ast_literal";
-                      List
-                       [Str "tests/flxi/parse_sexp.flx";
-                        Int 5;
-                        Int 13;
-                        Int 5;
-                        Int 13];
-                      List [Id "ast_int"; Str "int"; Str "4"]]]]]]
-... PARSED: List
-             [Id "ast_val_decl";
+                  List [Id "ast_int"; Str "int"; Str "4"]]]]]]
+PARSED: List
+         [Id "ast_val_decl";
+          List [Str "tests/flxi/parse_sexp.flx"; Int 6; Int 1; Int 6; Int 20];
+          Str "d";
+          List
+           [List [];
+            List
+             [List
+               [Id "ast_tuple";
+                List [Str "dummy"; Int 0; Int 0; Int 0; Int 0];
+                List []];
+              List []]];
+          List
+           [Id "some";
+            List
+             [Id "ast_name";
               List
-               [Str "tests/flxi/parse_sexp.flx"; Int 6; Int 1; Int 6; Int 20];
-              Str "d";
+               [Str "tests/flxi/parse_sexp.flx"; Int 6; Int 9; Int 6; Int 11];
+              Str "int";
+              List []]];
+          List
+           [Id "some";
+            List
+             [Id "ast_sum";
               List
-               [List [];
-                List
-                 [List
-                   [Id "ast_tuple";
-                    List [Str "dummy"; Int 0; Int 0; Int 0; Int 0];
-                    List []];
-                  List []]];
+               [Str "tests/flxi/parse_sexp.flx"; Int 6; Int 15; Int 6; Int 19];
               List
-               [Id "some";
-                List
-                 [Id "ast_name";
-                  List
-                   [Str "tests/flxi/parse_sexp.flx";
-                    Int 6;
-                    Int 9;
-                    Int 6;
-                    Int 11];
-                  Str "int";
-                  List []]];
-              List
-               [Id "some";
-                List
-                 [Id "ast_sum";
+               [List
+                 [Id "ast_literal";
                   List
                    [Str "tests/flxi/parse_sexp.flx";
                     Int 6;
                     Int 15;
                     Int 6;
-                    Int 19];
+                    Int 15];
+                  List [Id "ast_int"; Str "int"; Str "5"]];
+                List
+                 [Id "ast_literal";
                   List
-                   [List
-                     [Id "ast_literal";
-                      List
-                       [Str "tests/flxi/parse_sexp.flx";
-                        Int 6;
-                        Int 15;
-                        Int 6;
-                        Int 15];
-                      List [Id "ast_int"; Str "int"; Str "5"]];
-                    List
-                     [Id "ast_literal";
-                      List
-                       [Str "tests/flxi/parse_sexp.flx";
-                        Int 6;
-                        Int 19;
-                        Int 6;
-                        Int 19];
-                      List [Id "ast_int"; Str "int"; Str "6"]]]]]]
+                   [Str "tests/flxi/parse_sexp.flx";
+                    Int 6;
+                    Int 19;
+                    Int 6;
+                    Int 19];
+                  List [Id "ast_int"; Str "int"; Str "6"]]]]]]

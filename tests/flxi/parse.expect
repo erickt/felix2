@@ -1,35 +1,35 @@
-... PARSED: { sr=("[flx_srcref] generated", 0, 0, 0, 0); desc=Noop "" }
-... PARSED: { sr=("tests/flxi/parse.flx", 3, 1, 3, 3);
-              desc=Val (
-                    "a",
-                    None,
-                    Some ({ sr=("tests/flxi/parse.flx", 3, 9, 3, 3);
-                            desc=Literal Int ("int", 1) })) }
-... PARSED: { sr=("tests/flxi/parse.flx", 4, 1, 4, 4);
-              desc=Val (
-                    "b",
-                    Some ({ sr=("tests/flxi/parse.flx", 4, 9, 4, 4);
-                            desc=Name "int" }),
-                    Some ({ sr=("tests/flxi/parse.flx", 4, 15, 4, 4);
-                            desc=Literal Int ("int", 2) })) }
-... PARSED: { sr=("tests/flxi/parse.flx", 5, 1, 5, 5);
-              desc=Val (
-                    "c",
-                    None,
-                    Some ({ sr=("tests/flxi/parse.flx", 5, 9, 5, 5);
-                            desc=Sum
-                                  [{ sr=("tests/flxi/parse.flx", 5, 9, 5, 5);
-                                     desc=Literal Int ("int", 3) };
-                                   { sr=("tests/flxi/parse.flx", 5, 13, 5, 5);
-                                     desc=Literal Int ("int", 4) }] })) }
-... PARSED: { sr=("tests/flxi/parse.flx", 6, 1, 6, 6);
-              desc=Val (
-                    "d",
-                    Some ({ sr=("tests/flxi/parse.flx", 6, 9, 6, 6);
-                            desc=Name "int" }),
-                    Some ({ sr=("tests/flxi/parse.flx", 6, 15, 6, 6);
-                            desc=Sum
-                                  [{ sr=("tests/flxi/parse.flx", 6, 15, 6, 6);
-                                     desc=Literal Int ("int", 5) };
-                                   { sr=("tests/flxi/parse.flx", 6, 19, 6, 6);
-                                     desc=Literal Int ("int", 6) }] })) }
+PARSED: { sr=("[flx_srcref] generated", 0, 0, 0, 0); desc=Noop "" }
+PARSED: { sr=("tests/flxi/parse.flx", 3, 1, 3, 3);
+          desc=Val (
+                "a",
+                None,
+                Some ({ sr=("tests/flxi/parse.flx", 3, 9, 3, 3);
+                        desc=Literal Int ("int", 1) })) }
+PARSED: { sr=("tests/flxi/parse.flx", 4, 1, 4, 4);
+          desc=Val (
+                "b",
+                Some ({ sr=("tests/flxi/parse.flx", 4, 9, 4, 4);
+                        desc=Name "int" }),
+                Some ({ sr=("tests/flxi/parse.flx", 4, 15, 4, 4);
+                        desc=Literal Int ("int", 2) })) }
+PARSED: { sr=("tests/flxi/parse.flx", 5, 1, 5, 5);
+          desc=Val (
+                "c",
+                None,
+                Some ({ sr=("tests/flxi/parse.flx", 5, 9, 5, 5);
+                        desc=Sum
+                              [{ sr=("tests/flxi/parse.flx", 5, 9, 5, 5);
+                                 desc=Literal Int ("int", 3) };
+                               { sr=("tests/flxi/parse.flx", 5, 13, 5, 5);
+                                 desc=Literal Int ("int", 4) }] })) }
+PARSED: { sr=("tests/flxi/parse.flx", 6, 1, 6, 6);
+          desc=Val (
+                "d",
+                Some ({ sr=("tests/flxi/parse.flx", 6, 9, 6, 6);
+                        desc=Name "int" }),
+                Some ({ sr=("tests/flxi/parse.flx", 6, 15, 6, 6);
+                        desc=Sum
+                              [{ sr=("tests/flxi/parse.flx", 6, 15, 6, 6);
+                                 desc=Literal Int ("int", 5) };
+                               { sr=("tests/flxi/parse.flx", 6, 19, 6, 6);
+                                 desc=Literal Int ("int", 6) }] })) }
