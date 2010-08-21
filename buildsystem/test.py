@@ -1,3 +1,4 @@
+import time
 import difflib
 
 import fbuild
@@ -6,17 +7,51 @@ from fbuild.path import Path
 
 # ------------------------------------------------------------------------------
 
-def test_flxi(ctx, src):
-    src = Path(src)
-    expect = src.replaceext('.expect')
+def _make_stdout_dst(ctx, src):
+    """Builds the dst file."""
+    return src.addroot(ctx.buildroot).replaceext('.stdout')
 
-    return check_flxi(ctx, src=src, expect=expect)
+def test_flxi(ctx, srcs):
+    """Run flxi specific tests and return which srcs failed to run.."""
 
-@fbuild.db.caches
-def check_flxi(ctx,
-        src:fbuild.db.SRC,
-        expect:fbuild.db.OPTIONAL_SRC,
-        env={}):
+    def run_test(src):
+        src = Path(src)
+        dst = _make_stdout_dst(ctx, src)
+        expect = src.replaceext('.expect')
+
+        # Make sure the destination directory exists.
+        dst.parent.makedirs()
+
+        if not expect.exists():
+            expect = None
+
+        passed = check_flxi_test(ctx, src=src, dst=dst, expect=expect)
+        return src, passed
+
+    failed_srcs = []
+    for src, passed in ctx.scheduler.map(run_test, srcs):
+        if not passed:
+            failed_srcs.append(src)
+
+    return failed_srcs
+
+def clean_test_temporary_files(ctx, srcs):
+    """Delete's the test temporary files."""
+
+    def clean(src):
+        src = Path(src)
+        dst = _make_stdout_dst(ctx, src)
+
+        if dst.exists():
+            ctx.logger.log('removing ' + dst)
+            dst.remove()
+
+    ctx.scheduler.map(clean, srcs)
+
+def check_flxi_test(ctx, src, dst, expect, env={}):
+    """Run the test and return whether or not it equals the expected
+    results."""
+
     ctx.logger.check('checking ' + src)
 
     # We need to read the first line to see if there are any special options.
@@ -52,27 +87,33 @@ def check_flxi(ctx,
             ctx.logger.log(e.stderr.decode().strip(), verbose=1)
         return False
 
+    with open(dst, 'wb') as f:
+        f.write(stdout)
+
     if expect is None:
         ctx.logger.log('no .expect', color='cyan')
         return True
     else:
-        return check_expect(ctx, stdout, expect)
+        stdout = stdout.replace(b'\r\n', b'\n').replace(b'\r', b'\n')
 
-# ------------------------------------------------------------------------------
+        with open(expect, 'rb') as f:
+            s = f.read().replace(b'\r\n', b'\n').replace(b'\r', b'\n')
 
-def check_expect(ctx, stdout, expect):
-    stdout = stdout.replace(b'\r\n', b'\n').replace(b'\r', b'\n')
+        if stdout == s:
+            ctx.logger.passed()
+            return True
+        else:
+            ctx.logger.failed('failed: output does not match')
+            max_filename = max(len(expect), len(dst))
+            for line in difflib.unified_diff(
+                    stdout.decode().split('\n'),
+                    s.decode().split('\n'),
+                    fromfile=expect.ljust(max_filename),
+                    tofile=dst.ljust(max_filename),
+                    fromfiledate=time.ctime(expect.getmtime()),
+                    tofiledate=time.ctime(dst.getmtime()),
+                    lineterm=''):
+                ctx.logger.log(line)
+            ctx.logger.log('')
 
-    with open(expect, 'rb') as f:
-        s = f.read().replace(b'\r\n', b'\n').replace(b'\r', b'\n')
-
-    if stdout == s:
-        ctx.logger.passed()
-        return True
-    else:
-        ctx.logger.failed('failed: output does not match')
-        for line in difflib.ndiff(
-                stdout.decode().split('\n'),
-                s.decode().split('\n')):
-            ctx.logger.log(line)
-        return False
+            return False

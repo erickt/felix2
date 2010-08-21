@@ -436,6 +436,12 @@ def build(ctx):
 
 # ------------------------------------------------------------------------------
 
+def unit_tests():
+    """Returns the felix unit tests"""
+    return Path.globall(
+        'tests/flxi/*.flx',
+        'tests/parser/*.flx')
+
 @fbuild.target.register()
 def test(ctx):
     """Run the felix unit tests."""
@@ -443,5 +449,18 @@ def test(ctx):
     # Make sure we build felix first.
     build(ctx)
 
-    for src in Path.glob('tests/flxi/*.flx'):
-        call('buildsystem.test.test_flxi', ctx, src)
+    # Run the tests.
+    failed_srcs = call('buildsystem.test.test_flxi', ctx, unit_tests())
+
+    # Print out if any tests failed.
+    if failed_srcs:
+        ctx.logger.log('\nThe following tests failed:')
+        for src in failed_srcs:
+            ctx.logger.log('  %s' % src, color='yellow')
+
+@fbuild.target.register()
+def clean_tests(ctx):
+    """Clean felix unit tests."""
+
+    # Clean up the test temporary files.
+    call('buildsystem.test.clean_test_temporary_files', ctx, unit_tests())
