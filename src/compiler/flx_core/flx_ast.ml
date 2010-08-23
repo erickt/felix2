@@ -48,7 +48,7 @@ module Expr =
       | Sum of t list
       | Product of t list
 
-    and t = { sr: Flx_srcref.t; desc: desc}
+    and t = { sr: Flx_srcref.t; desc: desc }
 
     let rec print_desc ppf = function
       | Literal lit -> print_variant1 ppf "Literal" Literal.print lit
@@ -69,7 +69,7 @@ module Stmt =
       | Noop of string
       | Val of id_t * Type.t option * Expr.t option
 
-    and t = { sr: Flx_srcref.t; desc: desc}
+    and t = { sr: Flx_srcref.t; desc: desc }
 
     let rec print_desc ppf = function
       | Noop s -> print_variant1 ppf "Noop" print_string s
