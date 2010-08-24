@@ -48,3 +48,5 @@ let print_record4 ppf = fprintf ppf "@[<hv2>{ %s=%a;@ %s=%a;@ %s=%a;@ %s=%a@] }"
 let print_record5 ppf = fprintf ppf "@[<hv2>{ %s=%a;@ %s=%a;@ %s=%a;@ %s=%a;@ %s=%a@] }"
 let print_record6 ppf = fprintf ppf "@[<hv2>{ %s=%a;@ %s=%a;@ %s=%a;@ %s=%a;@ %s=%a;@ %s=%a@] }"
 let print_record7 ppf = fprintf ppf "@[<hv2>{ %s=%a;@ %s=%a;@ %s=%a;@ %s=%a;@ %s=%a;@ %s=%a;@ %s=%a@] }"
+
+let failwith format = kprintf failwith format
