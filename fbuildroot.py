@@ -331,7 +331,7 @@ def config_host(ctx, build):
         ocamlcp=ctx.options.host_ocamlcp,
         ocamlopt=ctx.options.host_ocamlopt,
         flags=['-w', 'exYz', '-warn-error', 'FDPSU'],
-        requires_at_least_version=(3, 11))
+        requires_at_least_version=(3, 12))
 
     phase.ocamlc = ocaml.ocamlc
     phase.ocamlcp = ocaml.ocamlcp

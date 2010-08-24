@@ -81,60 +81,69 @@ let to_sr = function
       Flx_srcref.make (filename, to_int fl, to_int fc, to_int ll, to_int ll)
   | sexp -> error sexp "Invalid source reference"
 
-let to_literal = function
-  | List [Id "ast_int"; Str s; i] -> Literal.Int (s, to_big_int i)
+let to_literal =
+  let open Literal in
+  function
+  | List [Id "ast_int"; Str s; i] -> int s (to_big_int i)
   | sexp -> error sexp "Invalid literal"
 
-let rec to_expr = function
+let rec to_expr =
+  let open Expr in
+  function
   (* "foo" *)
   | Str s ->
-      { Expr.sr=Flx_srcref.dummy_sr; desc=Expr.Literal (Literal.String s) }
+      make ~sr:Flx_srcref.dummy_sr ~node:(Literal (Literal.string s))
 
   (* () *)
   | List [] ->
-      { Expr.sr=Flx_srcref.dummy_sr; desc=Expr.Tuple [] }
+      make ~sr:Flx_srcref.dummy_sr ~node:(Tuple [])
 
   (* (<expr>) *)
   | List [expr] -> to_expr expr
 
   (* <literal> *)
   | List [Id "ast_literal"; sr; literal] ->
-      { Expr.sr=to_sr sr; desc=Expr.Literal (to_literal literal) }
+      make ~sr:(to_sr sr) ~node:(Literal (to_literal literal))
 
   (* a *)
   | List [Id "ast_name"; sr; Id name; List ts] ->
       (* Ignoring ts for the moment. *)
-      { Expr.sr=to_sr sr; desc=Expr.Name name }
+      make ~sr:(to_sr sr) ~node:(Name name)
 
   (* <expr> + <expr> *)
   | List [Id "ast_sum"; sr; List es] ->
-      { Expr.sr=to_sr sr; desc=Expr.Sum (List.map to_expr es) }
+      make ~sr:(to_sr sr) ~node:(Sum (List.map to_expr es))
 
   (* <expr> * <expr> *)
   | List [Id "ast_product"; sr; List es] ->
-      { Expr.sr=to_sr sr; desc=Expr.Sum (List.map to_expr es) }
+      make ~sr:(to_sr sr) ~node:(Product (List.map to_expr es))
 
   | sexp -> error sexp "Invalid expression"
 
-let to_type = function
+let to_type =
+  let open Type in
+  function
   (* typedef foo *)
   | List [Id "ast_name"; sr; (Id name | Str name); List ts] ->
       (* Ignoring ts for the moment. *)
-      { Type.sr=to_sr sr; desc=Type.Name name }
+      make ~sr:(to_sr sr) ~node:(Name name)
 
   | sexp -> error sexp "Invalid type"
 
-let to_stmt = function
-  | List [] -> { Stmt.sr=Flx_srcref.dummy_sr; desc=Stmt.Noop "" }
+let to_stmt =
+  let open Stmt in
+  function
+  | List [] -> make ~sr:Flx_srcref.dummy_sr ~node:(Stmt.Noop "")
 
   (* val a = <expr>; *)
   | List [Id "ast_val_decl"; sr; Str name; vs; typ; expr ] ->
       (* Ignoring type variables (vs) for now. *)
-      { Stmt.sr=to_sr sr;
-        desc=Stmt.Val (
+      make
+        ~sr:(to_sr sr)
+        ~node:(Val (
           name,
           to_option to_type typ,
-          to_option to_expr expr) }
+          to_option to_expr expr))
 
   | sexp -> error sexp "Invalid statement"
 

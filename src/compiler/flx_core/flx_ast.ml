@@ -5,30 +5,55 @@ type id_t = string
 
 module Type =
   struct
-    type desc =
+    type t = { sr: Flx_srcref.t; node: node }
+
+    and node =
       | Int
       | String
       | Name of string
 
-    and t = { sr: Flx_srcref.t; desc: desc }
+    (** Make a type. *)
+    let make ~sr ~node = { sr; node }
 
-    let rec print_desc ppf = function
+    (** Return the type's node. *)
+    let node { node } = node
+
+    (** Return the type's source reference. *)
+    let sr { sr } = sr
+
+    let rec print_node ppf = function
       | Int -> print_variant0 ppf "Int"
       | String -> print_variant0 ppf "String"
       | Name s -> print_variant1 ppf "Name" print_string s
 
-    and print ppf { sr=sr; desc=desc } =
+    (** Print a type. *)
+    and print ppf { sr; node } =
       print_record2 ppf
         "sr" Flx_srcref.print sr
-        "desc" print_desc desc
+        "node" print_node node
   end
 
 module Literal =
   struct
-    type t =
+    type t = node
+
+    and node =
       | Int of string * Big_int.big_int
       | String of string
 
+    (** Make a literal. *)
+    let make ~node = node
+
+    (** Return the literal's node. *)
+    let node literal = literal
+
+    (** Make a literal integer. *)
+    let int suffix num = make ~node:(Int (suffix, num))
+
+    (** Make a literal string. *)
+    let string s = make ~node:(String s)
+
+    (** Print a literal. *)
     let print ppf = function
       | Int (s,i) ->
           print_variant2 ppf "Int"
@@ -41,37 +66,56 @@ module Literal =
 
 module Expr =
   struct
-    type desc =
+    type t = { sr: Flx_srcref.t; node: node }
+
+    and node =
       | Literal of Literal.t
       | Tuple of t list
       | Name of string
       | Sum of t list
       | Product of t list
 
-    and t = { sr: Flx_srcref.t; desc: desc }
+    (** make an expression. *)
+    let make ~sr ~node = { sr; node }
 
-    let rec print_desc ppf = function
+    (** return the expression's node. *)
+    let node { node } = node
+
+    (** return the expression's source reference. *)
+    let sr { sr } = sr
+
+    let rec print_node ppf = function
       | Literal lit -> print_variant1 ppf "Literal" Literal.print lit
       | Tuple es -> print_variant1 ppf "Tuple" (Flx_list.print print) es
       | Name name -> print_variant1 ppf "Name" print_string name
       | Sum es -> print_variant1 ppf "Sum" (Flx_list.print print) es
       | Product es -> print_variant1 ppf "Product" (Flx_list.print print) es
 
-    and print ppf { sr=sr; desc=desc } =
+    (** Print an expression. *)
+    and print ppf { sr; node } =
       print_record2 ppf
         "sr" Flx_srcref.print sr
-        "desc" print_desc desc
+        "node" print_node node
   end
 
 module Stmt =
   struct
-    type desc =
+    type t = { sr: Flx_srcref.t; node: node }
+
+    and node =
       | Noop of string
       | Val of id_t * Type.t option * Expr.t option
 
-    and t = { sr: Flx_srcref.t; desc: desc }
+    (** make a statement. *)
+    let make ~sr ~node = { sr; node }
 
-    let rec print_desc ppf = function
+    (** return the statement's node. *)
+    let node { node } = node
+
+    (** return the statement's source reference. *)
+    let sr { sr } = sr
+
+    let rec print_node ppf = function
       | Noop s -> print_variant1 ppf "Noop" print_string s
       | Val (id,typ,expr) ->
           print_variant3 ppf "Val"
@@ -79,9 +123,9 @@ module Stmt =
             (print_opt Type.print) typ
             (print_opt Expr.print) expr
 
-    and print ppf { sr=sr; desc=desc } =
+    (** Print a statement. *)
+    and print ppf { sr; node } =
       print_record2 ppf
         "sr" Flx_srcref.print sr
-        "desc" print_desc desc
-
+        "node" print_node node
   end
