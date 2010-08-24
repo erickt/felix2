@@ -8,6 +8,7 @@ module Type :
       | Int
       | String
       | Name of string
+      | Tuple of t list
 
     (** Make a type. *)
     val make: sr:Flx_srcref.t -> node:node -> t
@@ -17,6 +18,9 @@ module Type :
 
     (** Return the type's source reference. *)
     val sr: t -> Flx_srcref.t
+
+    (** Return the unit type. *)
+    val unit: sr:Flx_srcref.t -> t
 
     (** Print a type. *)
     val print: Format.formatter -> t -> unit
@@ -65,6 +69,9 @@ module Expr :
 
     (** Return the expression's source reference. *)
     val sr: t -> Flx_srcref.t
+
+    (** Return the unit expression. *)
+    val unit: sr:Flx_srcref.t -> t
 
     (** Print an expression. *)
     val print: Format.formatter -> t -> unit

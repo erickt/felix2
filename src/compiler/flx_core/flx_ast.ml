@@ -11,6 +11,7 @@ module Type =
       | Int
       | String
       | Name of string
+      | Tuple of t list
 
     (** Make a type. *)
     let make ~sr ~node = { sr; node }
@@ -21,10 +22,14 @@ module Type =
     (** Return the type's source reference. *)
     let sr { sr } = sr
 
+    (** Return the unit type. *)
+    let unit ~sr = make ~sr ~node:(Tuple [])
+
     let rec print_node ppf = function
       | Int -> print_variant0 ppf "Int"
       | String -> print_variant0 ppf "String"
       | Name s -> print_variant1 ppf "Name" print_string s
+      | Tuple ts -> print_variant1 ppf "Tuple" (Flx_list.print print) ts
 
     (** Print a type. *)
     and print ppf { sr; node } =
@@ -83,6 +88,9 @@ module Expr =
 
     (** return the expression's source reference. *)
     let sr { sr } = sr
+
+    (** Return the unit expression. *)
+    let unit ~sr = make ~sr ~node:(Tuple [])
 
     let rec print_node ppf = function
       | Literal lit -> print_variant1 ppf "Literal" Literal.print lit
