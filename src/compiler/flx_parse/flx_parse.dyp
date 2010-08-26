@@ -1716,7 +1716,7 @@ let wrap_parser f lexbuf =
       syntax_error (get_sr_from_lexbuf lexbuf) "Syntax error"
 
   | Dyp.Bad_constructor (nt, ctor1, ctor2) ->
-      failure "Bad constructor '%s' and '%s' for nonterminal '%s'"
+      Flx_format.failwith "Bad constructor '%s' and '%s' for nonterminal '%s'"
         ctor1
         ctor2
         nt

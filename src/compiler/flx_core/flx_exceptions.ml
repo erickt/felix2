@@ -3,9 +3,6 @@ exception Parse_error of Flx_srcref.t * string
 exception Syntax_error of Flx_srcref.t * string
 exception Client_error of Flx_srcref.t list * string
 
-let failure format =
-  Format.ksprintf (fun s -> failwith s) format
-
 let lex_error sr format =
   Format.ksprintf (fun s -> raise (Lex_error (sr, s))) format
 

@@ -204,3 +204,6 @@ val print_record7 :
   string -> (Format.formatter -> 'f -> unit) -> 'f ->
   string -> (Format.formatter -> 'g -> unit) -> 'g ->
   unit
+
+(* Wrap O'Caml's failwith function to allow formatting. *)
+val failwith : ('a, Format.formatter, unit, 'b) format4 -> 'a
