@@ -106,7 +106,7 @@ let rec to_expr =
       make ~sr:(to_sr sr) ~node:(Literal (to_literal literal))
 
   (* a *)
-  | List [Id "ast_name"; sr; Id name; List ts] ->
+  | List [Id "ast_name"; sr; Str name; List ts] ->
       (* Ignoring ts for the moment. *)
       make ~sr:(to_sr sr) ~node:(Name name)
 
