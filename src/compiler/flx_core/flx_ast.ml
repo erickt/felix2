@@ -29,8 +29,11 @@ module Type =
     (** Return the int type. *)
     let int ~sr ~kind = make ~sr ~node:(Int kind)
 
+    (** Return the string type. *)
+    let string sr = make ~sr ~node:String
+
     (** Return the unit type. *)
-    let unit ~sr = make ~sr ~node:(Tuple [])
+    let unit sr = make ~sr ~node:(Tuple [])
 
     let rec print_node ppf = function
       | Int k -> print_variant1 ppf "Int" print_int_kind k

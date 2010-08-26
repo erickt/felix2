@@ -26,8 +26,11 @@ module Type :
     (** Make a literal integer. *)
     val int: sr:Flx_srcref.t -> kind:int_kind -> t
 
+    (** Return the string type. *)
+    val string: Flx_srcref.t -> t
+
     (** Return the unit type. *)
-    val unit: sr:Flx_srcref.t -> t
+    val unit: Flx_srcref.t -> t
 
     (** Print a type. *)
     val print: Format.formatter -> t -> unit
