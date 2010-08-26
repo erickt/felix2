@@ -3,8 +3,6 @@
 open Batteries
 open Format
 
-open Flx_ast
-
 (* Preparse all the imported libraries. *)
 let parse_imports parser_state imports handle_stmt =
   List.fold_left begin fun parser_state name ->
@@ -130,6 +128,7 @@ let print_sexp ~print sr ocs =
 (* Parse a s-expression and print it out. *)
 let print_ast ~print sr ocs =
   Flx_profile.call "Flxi.print_ast" begin fun () ->
+    let open Flx_ast in
     let sexp = Flx_sexp.of_ocs ocs in
     if print then printf "PARSED: %a@." Stmt.print (Flx_sexp.to_stmt sexp);
     ()
