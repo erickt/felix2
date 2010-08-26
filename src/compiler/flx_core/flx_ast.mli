@@ -1,4 +1,4 @@
-type id_t = string
+type name = string
 
 module Type :
   sig
@@ -83,7 +83,7 @@ module Stmt :
 
     type node =
       | Noop of string
-      | Val of id_t * Type.t option * Expr.t option
+      | Val of name * Type.t option * Expr.t option
 
     (** Make a statement. *)
     val make: sr:Flx_srcref.t -> node:node -> t

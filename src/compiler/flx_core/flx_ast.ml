@@ -1,7 +1,7 @@
 open Format
 open Flx_format
 
-type id_t = string
+type name = string
 
 module Type =
   struct
@@ -112,7 +112,7 @@ module Stmt =
 
     and node =
       | Noop of string
-      | Val of id_t * Type.t option * Expr.t option
+      | Val of name * Type.t option * Expr.t option
 
     (** make a statement. *)
     let make ~sr ~node = { sr; node }
@@ -125,9 +125,9 @@ module Stmt =
 
     let rec print_node ppf = function
       | Noop s -> print_variant1 ppf "Noop" print_string s
-      | Val (id,typ,expr) ->
+      | Val (name,typ,expr) ->
           print_variant3 ppf "Val"
-            print_string id
+            print_string name
             (print_opt Type.print) typ
             (print_opt Expr.print) expr
 
