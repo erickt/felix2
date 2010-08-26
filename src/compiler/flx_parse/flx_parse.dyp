@@ -1701,13 +1701,6 @@ let wrap_parser f lexbuf =
     | _ -> failwith "Dypgen parser failed"
     end
   with
-  | Failure s ->
-      if Printexc.backtrace_status () then begin
-        eprintf "%s@." (Printexc.get_backtrace ());
-      end;
-
-      parse_error (get_sr_from_lexbuf lexbuf) "Failure \"%s\" parsing file" s
-
   | Dyp.Syntax_error ->
       if Printexc.backtrace_status () then begin
         eprintf "%s@." (Printexc.get_backtrace ());

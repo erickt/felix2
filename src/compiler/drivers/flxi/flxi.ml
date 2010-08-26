@@ -73,6 +73,13 @@ let parse_channel ~name ~print parser_state handle_stmt channel args =
 
         Some parser_state
       with
+      | Failure s ->
+          if Printexc.backtrace_status () then begin
+            eprintf "%s@." (Printexc.get_backtrace ());
+          end;
+          printf "Fatal error: %s@." s;
+          None
+
       | Flx_exceptions.Syntax_error ((_,l1,c1,l2,c2) as sr, e) ->
           (* Reset our state. *)
           first_line := true;
