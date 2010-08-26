@@ -134,6 +134,24 @@ let print_ast ~print sr ocs =
     ()
   end
 
+(* Parse a type tree and print it out. *)
+let print_typecheck =
+  let env = ref Flx_type_env.empty in
+  fun ~print sr ocs ->
+  Flx_profile.call "Flxi.print_ast" begin fun () ->
+    let open Flx_type in
+    let sexp = Flx_sexp.of_ocs ocs in
+    let stmt = Flx_sexp.to_stmt sexp in
+    let env', stmt = Flx_bind.bind_stmt !env stmt in
+    env := env';
+
+    if print then printf "SEMA: %a@.TYPE ENV: %a@.@."
+      Stmt.print stmt
+      Flx_type_env.print !env;
+
+    ()
+  end
+
 let main () =
   Options.parse_args "Usage: flxi <options> <files>\nOptions are:";
 
@@ -145,6 +163,7 @@ let main () =
     | Options.Parse_scheme -> print_scheme
     | Options.Parse_sexp -> print_sexp
     | Options.Parse_ast -> print_ast
+    | Options.Typecheck -> print_typecheck
   in
 
   (* Parse all the imported files. *)
