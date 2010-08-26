@@ -81,11 +81,20 @@ let to_sr = function
       Flx_srcref.make (filename, to_int fl, to_int fc, to_int ll, to_int ll)
   | sexp -> error sexp "Invalid source reference"
 
-let to_literal =
+let to_literal sexp =
   let open Literal in
-  function
-  | List [Id "ast_int"; Str s; i] -> int s (to_big_int i)
-  | sexp -> error sexp "Invalid literal"
+  match sexp with
+  | List [Id "ast_int"; Str s; i] ->
+      let i = to_big_int i in
+      begin match s with
+      | "int" -> int Type.Int_int i
+      | "uint" -> int Type.Int_uint i
+      | _ -> error sexp "Invalid integer type: %s" s
+      end
+
+  | List [Id "ast_string"; Str s] -> string s
+
+  | _ -> error sexp "Invalid literal"
 
 let rec to_expr =
   let open Expr in

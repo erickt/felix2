@@ -5,10 +5,14 @@ type name = string
 
 module Type =
   struct
+    type int_kind =
+      | Int_int
+      | Int_uint
+
     type t = { sr: Flx_srcref.t; node: node }
 
     and node =
-      | Int
+      | Int of int_kind
       | String
       | Name of string
       | Tuple of t list
@@ -22,14 +26,21 @@ module Type =
     (** Return the type's source reference. *)
     let sr { sr } = sr
 
+    (** Return the int type. *)
+    let int ~sr ~kind = make ~sr ~node:(Int kind)
+
     (** Return the unit type. *)
     let unit ~sr = make ~sr ~node:(Tuple [])
 
     let rec print_node ppf = function
-      | Int -> print_variant0 ppf "Int"
+      | Int k -> print_variant1 ppf "Int" print_int_kind k
       | String -> print_variant0 ppf "String"
       | Name s -> print_variant1 ppf "Name" print_string s
       | Tuple ts -> print_variant1 ppf "Tuple" (Flx_list.print print) ts
+
+    and print_int_kind ppf = function
+      | Int_int -> print_variant0 ppf "Int_int"
+      | Int_uint -> print_variant0 ppf "Int_uint"
 
     (** Print a type. *)
     and print ppf { sr; node } =
@@ -43,7 +54,7 @@ module Literal =
     type t = node
 
     and node =
-      | Int of string * Big_int.big_int
+      | Int of Type.int_kind * Big_int.big_int
       | String of string
 
     (** Make a literal. *)
@@ -53,16 +64,16 @@ module Literal =
     let node literal = literal
 
     (** Make a literal integer. *)
-    let int suffix num = make ~node:(Int (suffix, num))
+    let int ~kind ~num = make ~node:(Int (kind, num))
 
     (** Make a literal string. *)
     let string s = make ~node:(String s)
 
     (** Print a literal. *)
     let print ppf = function
-      | Int (s,i) ->
+      | Int (k,i) ->
           print_variant2 ppf "Int"
-            print_string s
+            Type.print_int_kind k
             print_big_int i
       | String s ->
           print_variant1 ppf "String"

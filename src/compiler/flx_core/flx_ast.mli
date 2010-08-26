@@ -4,8 +4,12 @@ module Type :
   sig
     type t
 
+    type int_kind =
+      | Int_int
+      | Int_uint
+
     type node =
-      | Int
+      | Int of int_kind
       | String
       | Name of string
       | Tuple of t list
@@ -19,6 +23,9 @@ module Type :
     (** Return the type's source reference. *)
     val sr: t -> Flx_srcref.t
 
+    (** Make a literal integer. *)
+    val int: sr:Flx_srcref.t -> kind:int_kind -> t
+
     (** Return the unit type. *)
     val unit: sr:Flx_srcref.t -> t
 
@@ -31,7 +38,7 @@ module Literal :
     type t
 
     type node =
-      | Int of string * Big_int.big_int
+      | Int of Type.int_kind * Big_int.big_int
       | String of string
 
     (** Make a literal. *)
@@ -41,7 +48,7 @@ module Literal :
     val node: t -> node
 
     (** Make a literal integer. *)
-    val int: string -> Big_int.big_int -> t
+    val int: kind:Type.int_kind -> num:Big_int.big_int -> t
 
     (** Make a literal string. *)
     val string: string -> t
