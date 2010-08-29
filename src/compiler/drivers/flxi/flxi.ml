@@ -75,6 +75,7 @@ let parse_channel ~name ~print parser_state handle_stmt channel args =
           if Printexc.backtrace_status () then begin
             eprintf "%s@." (Printexc.get_backtrace ());
           end;
+
           printf "Fatal error: %s@." s;
           None
 
@@ -82,11 +83,15 @@ let parse_channel ~name ~print parser_state handle_stmt channel args =
           (* Reset our state. *)
           first_line := true;
 
+          if Printexc.backtrace_status () then begin
+            eprintf "%s@." (Printexc.get_backtrace ());
+          end;
+
           printf "@.%s@." (Flx_srcref.to_string sr);
           printf "%s@." (Flx_io.get_lines
             (IO.input_string (Buffer.contents buffer))
             l1 c1 l2 c2);
-          printf "Error: %s@." e;
+          printf "Syntax error: %s@." e;
 
           (* Ignore the rest of the line. *)
           Flx_parse.flush_input lexbuf;
@@ -97,7 +102,11 @@ let parse_channel ~name ~print parser_state handle_stmt channel args =
           (* Reset our state. *)
           first_line := true;
 
-          printf "Error: %s: %a@." e Flx_sexp.print sexp;
+          if Printexc.backtrace_status () then begin
+            eprintf "%s@." (Printexc.get_backtrace ());
+          end;
+
+          printf "Sexp error: %s:@,%a@." e Flx_sexp.print sexp;
 
           (* Ignore the rest of the line. *)
           Flx_parse.flush_input lexbuf;

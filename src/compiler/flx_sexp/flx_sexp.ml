@@ -144,11 +144,11 @@ let to_type =
 
 let to_stmt =
   let open Stmt in
-  function
+  match sexp with
   | List [] -> make ~sr:Flx_srcref.dummy_sr ~node:(Stmt.Noop "")
 
   (* val a = <expr>; *)
-  | List [Id "ast_val_decl"; sr; Str name; vs; typ; expr ] ->
+  | List [Id "ast_val_decl"; sr; Str name; vs; typ; expr] ->
       (* Ignoring type variables (vs) for now. *)
       make
         ~sr:(to_sr sr)
