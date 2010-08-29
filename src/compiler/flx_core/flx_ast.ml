@@ -12,6 +12,7 @@ module Type =
     type t = { sr: Flx_srcref.t; node: node }
 
     and node =
+      | Unknown
       | Int of int_kind
       | String
       | Name of string
@@ -36,6 +37,7 @@ module Type =
     let unit sr = make ~sr ~node:(Tuple [])
 
     let rec print_node ppf = function
+      | Unknown -> print_variant0 ppf "Unknown"
       | Int k -> print_variant1 ppf "Int" print_int_kind k
       | String -> print_variant0 ppf "String"
       | Name s -> print_variant1 ppf "Name" print_string s

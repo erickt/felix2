@@ -137,6 +137,9 @@ let to_type =
       (* Ignoring ts for the moment. *)
       make ~sr:(to_sr sr) ~node:(Name name)
 
+  | Id "typ_none" ->
+      make ~sr:Flx_srcref.dummy_sr ~node:Unknown
+
   | sexp -> error sexp "Invalid type"
 
 let to_stmt =

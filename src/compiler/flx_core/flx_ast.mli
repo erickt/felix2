@@ -9,6 +9,7 @@ module Type :
       | Int_uint
 
     type node =
+      | Unknown
       | Int of int_kind
       | String
       | Name of string
