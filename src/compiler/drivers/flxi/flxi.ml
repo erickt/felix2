@@ -113,6 +113,22 @@ let parse_channel ~name ~print parser_state handle_stmt channel args =
 
           Some !old_parser_state
 
+      | Flx_bind.Type_error e ->
+          (* Reset our state. *)
+          first_line := true;
+
+          if Printexc.backtrace_status () then begin
+            eprintf "%s@." (Printexc.get_backtrace ());
+          end;
+
+          printf "Type error: %s@." e;
+
+          (* Ignore the rest of the line. *)
+          Flx_parse.flush_input lexbuf;
+
+          Some !old_parser_state
+
+
       | IO.No_more_input ->
           None
       end

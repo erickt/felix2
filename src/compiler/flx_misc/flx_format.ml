@@ -49,11 +49,14 @@ let print_record5 ppf = fprintf ppf "@[<hv2>{ %s=%a;@ %s=%a;@ %s=%a;@ %s=%a;@ %s
 let print_record6 ppf = fprintf ppf "@[<hv2>{ %s=%a;@ %s=%a;@ %s=%a;@ %s=%a;@ %s=%a;@ %s=%a@] }"
 let print_record7 ppf = fprintf ppf "@[<hv2>{ %s=%a;@ %s=%a;@ %s=%a;@ %s=%a;@ %s=%a;@ %s=%a;@ %s=%a@] }"
 
-(* Wrap O'Caml's failwith function to allow formatting. *)
-let failwith format =
+(** Replace O'Caml's ksprintf with one that takes Format.formatter. *)
+let ksprintf k format =
   let buf = Buffer.create 512 in
   let ppf = Format.formatter_of_buffer buf in
   Format.kfprintf begin fun ppf ->
     pp_print_flush ppf ();
-    failwith (Buffer.contents buf)
+    k (Buffer.contents buf)
   end ppf format
+
+(* Wrap O'Caml's failwith function to allow formatting. *)
+let failwith format = ksprintf failwith format

@@ -17,7 +17,7 @@ exception Sexp_error of t * string
 
 (** Error out *)
 let error sexp format =
-  Format.kprintf (fun s -> raise (Sexp_error (sexp, s))) format
+  ksprintf (fun s -> raise (Sexp_error (sexp, s))) format
 
 (* Convert from ocs to an s-expression. *)
 let rec of_ocs = function

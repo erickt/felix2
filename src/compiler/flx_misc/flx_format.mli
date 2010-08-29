@@ -205,5 +205,8 @@ val print_record7 :
   string -> (Format.formatter -> 'g -> unit) -> 'g ->
   unit
 
+(** Replace O'Caml's ksprintf with one that takes Format.formatter. *)
+val ksprintf: (string -> 'a) -> ('b, Format.formatter, unit, 'a) format4 -> 'b
+
 (* Wrap O'Caml's failwith function to allow formatting. *)
 val failwith : ('a, Format.formatter, unit, 'b) format4 -> 'a

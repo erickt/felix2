@@ -3,6 +3,12 @@ open Flx_type
 
 module Ast_expr = Flx_ast.Expr
 
+exception Type_error of string
+
+(** Error out *)
+let error format =
+  ksprintf (fun s -> raise (Type_error s)) format
+
 let bind_type = ()
 
 (** Bind an AST literal to a typed literal. *)
@@ -29,7 +35,7 @@ let rec bind_expr env expr =
       let typ =
         begin match Flx_type_env.find env name with
         | Some typ -> typ
-        | None -> failwith "unbound variable named \"%s\"" name
+        | None -> error "unbound variable named \"%s\"" name
         end
       in
       make ~sr ~typ ~node:(Name name)
@@ -44,7 +50,7 @@ let rec bind_expr env expr =
         List.fold_left begin fun typ e ->
           let typ' = Expr.typ e in
           if Type.node typ = Type.node typ' then typ else
-          failwith "Trying to add non-integers:@.%a@.%a@."
+          error "Trying to add non-integers:@.%a@.%a@."
             Type.print typ
             Type.print typ';
         end (Expr.typ e) es
@@ -62,7 +68,7 @@ let rec bind_expr env expr =
         List.fold_left begin fun typ e ->
           let typ' = Expr.typ e in
           if Type.node typ = Type.node typ' then typ else
-          failwith "Trying to multiply non-integers:@.%a@.%a@."
+          error "Trying to multiply non-integers:@.%a@.%a@."
             Type.print typ
             Type.print typ';
         end (Expr.typ e) es
@@ -70,7 +76,7 @@ let rec bind_expr env expr =
 
       make ~sr ~typ ~node:(Product (e :: es))
 
-  | _ -> failwith "cannot handle %a yet@." Ast_expr.print expr
+  | _ -> error "Cannot bind expression:@ %a" Ast_expr.print expr
 
 
 (** Bind an AST statement to a typed statement. *)
@@ -83,7 +89,7 @@ let bind_stmt env stmt =
 
   | Ast_stmt.Val (name,constraint_type,expr) ->
       begin match expr with
-      | None -> failwith "val statement not provided an expression"
+      | None -> error "val statement not provided an expression"
       | Some expr ->
           let expr = bind_expr env expr in
           let typ : Type.t = Expr.typ expr in
@@ -91,7 +97,7 @@ let bind_stmt env stmt =
           (* Make sure the constraint matches the inferred type. *)
           begin match constraint_type with
           | Some constraint_type when constraint_type != typ ->
-              failwith "This expression of type %a but was expected of type %a"
+              error "This expression of type %a but was expected of type %a"
                 Type.print typ
                 Type.print constraint_type
           | _ -> ()
