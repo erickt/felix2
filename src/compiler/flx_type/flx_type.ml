@@ -53,6 +53,17 @@ module Expr =
         "typ" Type.print typ
   end
 
+module Lambda =
+  struct
+    type t = { typ: Type.t }
+
+    let typ { typ } = typ
+
+    let print ppf { typ } =
+      print_record1 ppf
+        "typ" Type.print typ
+  end
+
 module Stmt =
   struct
     type t = { sr: Flx_srcref.t; node: node; typ: Type.t }
@@ -60,6 +71,7 @@ module Stmt =
     and node =
       | Noop of string
       | Val of name * Expr.t
+      | Curry of name * Lambda.t
 
     (** make a statement. *)
     let make ~sr ~node ~typ = { sr; node; typ }
@@ -79,6 +91,10 @@ module Stmt =
           print_variant2 ppf "Val"
             print_string name
             Expr.print expr
+      | Curry (name,lambda) ->
+          print_variant2 ppf "Curry"
+            print_string name
+            Lambda.print lambda
 
     (** Print a statement. *)
     and print ppf { sr; node; typ } =

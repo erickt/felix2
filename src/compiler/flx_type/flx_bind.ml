@@ -2,6 +2,7 @@ open Flx_format
 open Flx_type
 
 module Ast_expr = Flx_ast.Expr
+module Ast_lambda = Flx_ast.Lambda
 
 exception Type_error of string
 
@@ -79,6 +80,10 @@ let rec bind_expr env expr =
   | _ -> error "Cannot bind expression:@ %a" Ast_expr.print expr
 
 
+let bind_lambda env lambda =
+  error "Cannot bind lambda:@ %a" Ast_lambda.print lambda
+
+
 (** Bind an AST statement to a typed statement. *)
 let bind_stmt env stmt =
   let open Stmt in
@@ -108,3 +113,9 @@ let bind_stmt env stmt =
 
           env, make ~sr ~typ ~node:(Val (name, expr))
       end
+
+  | Ast_stmt.Curry (name,lambda) ->
+      let env, lambda = bind_lambda env lambda in
+      env, make ~sr ~typ:(Lambda.typ lambda) ~node:(Curry (name, lambda))
+
+  | _ -> error "Cannot bind statement:@ %a" Ast_stmt.print stmt

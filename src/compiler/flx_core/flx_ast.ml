@@ -122,13 +122,114 @@ module Expr =
         "node" print_node node
   end
 
-module Stmt =
+module Parameter =
   struct
+    type kind = Val
+
+    type t = {
+      kind: kind;
+      name: name;
+      typ: Type.t;
+      default: Expr.t option }
+
+    let make ?default ~kind ~name ~typ = { kind; name; typ; default }
+
+    let print_kind ppf = function
+      | Val -> print_variant0 ppf "Val"
+
+    (** Print a parameter. *)
+    let print ppf { kind; name; typ; default } =
+      print_record4 ppf
+        "kind" print_kind kind
+        "name" print_string name
+        "typ" Type.print typ
+        "default" (print_opt Expr.print) default
+  end
+
+(** A param is a set of curry-able parameters that can have a precondition test
+ * set on them. *)
+module Param =
+  struct
+    type t = { parameters: Parameter.t list; precondition: Expr.t option }
+
+    let make ?precondition parameters = { parameters; precondition }
+
+    let print ppf { parameters; precondition } =
+      print_record2 ppf
+        "parameters" (Flx_list.print Parameter.print) parameters
+        "precondition" (print_opt Expr.print) precondition
+  end
+
+module rec Lambda :
+  sig
+    type kind =
+      | Function
+
+    type t = {
+      kind: kind;
+      params: Param.t list;
+      return_typ: Type.t;
+      stmts: Stmt.t list }
+
+    val make : kind -> Param.t list -> Type.t -> Stmt.t list -> t
+
+    (** Print a lambda. *)
+    val print : formatter -> t -> unit
+  end = struct
+    type kind =
+      | Function
+
+    type t = {
+      kind: kind;
+      params: Param.t list;
+      return_typ: Type.t;
+      stmts: Stmt.t list }
+
+    (** Make a lambda. *)
+    let make kind params return_typ stmts = { kind; params; return_typ; stmts }
+
+    (** Print a function kind. *)
+    let print_kind ppf = function
+      | Function -> print_variant0 ppf "Function"
+
+    (** Print a lambda. *)
+    let print ppf { kind; params; return_typ; stmts } =
+      print_record4 ppf
+        "kind" print_kind kind
+        "params" (Flx_list.print Param.print) params
+        "return_typ" Type.print return_typ
+        "stmts" (Flx_list.print Stmt.print) stmts
+  end
+
+and Stmt :
+  sig
+    type t
+
+    type node =
+      | Noop of string
+      | Val of name * Type.t option * Expr.t option
+      | Curry of name * Lambda.t
+      | Return of Expr.t
+
+    (** Make a statement. *)
+    val make: sr:Flx_srcref.t -> node:node -> t
+
+    (** Return the statement's node. *)
+    val node: t -> node
+
+    (** Return the statement's source reference. *)
+    val sr: t -> Flx_srcref.t
+
+    (** Print a statement. *)
+    val print: Format.formatter -> t -> unit
+  end = struct
     type t = { sr: Flx_srcref.t; node: node }
 
     and node =
       | Noop of string
       | Val of name * Type.t option * Expr.t option
+      | Curry of name * Lambda.t
+      | Return of Expr.t
 
     (** make a statement. *)
     let make ~sr ~node = { sr; node }
@@ -146,6 +247,12 @@ module Stmt =
             print_string name
             (print_opt Type.print) typ
             (print_opt Expr.print) expr
+      | Curry (name,lambda) ->
+          print_variant2 ppf "Curry"
+            print_string name
+            Lambda.print lambda
+      | Return expr ->
+          print_variant1 ppf "Return" Expr.print expr
 
     (** Print a statement. *)
     and print ppf { sr; node } =

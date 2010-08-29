@@ -88,13 +88,65 @@ module Expr :
     val print: Format.formatter -> t -> unit
   end
 
-module Stmt :
+module Parameter :
+  sig
+    type kind = Val
+
+    type t = private {
+      kind: kind;
+      name: name;
+      typ: Type.t;
+      default: Expr.t option }
+
+    (** Make a parameter. *)
+    val make: ?default:Expr.t -> kind:kind -> name:name -> typ:Type.t -> t
+
+    (** Print a parameter. *)
+    val print: Format.formatter -> t -> unit
+  end
+
+(** A param is a set of curry-able parameters that can have a precondition test
+ * set on them. *)
+module Param :
+  sig
+    type t = private {
+      parameters: Parameter.t list;
+      precondition: Expr.t option }
+
+    (** Make a param. *)
+    val make : ?precondition:Expr.t -> Parameter.t list -> t
+
+    (** Print a param. *)
+    val print: Format.formatter -> t -> unit
+  end
+
+module rec Lambda :
+  sig
+    type kind =
+      | Function
+
+    type t = {
+      kind: kind;
+      params: Param.t list;
+      return_typ: Type.t;
+      stmts: Stmt.t list }
+
+    (** Make a lambda. *)
+    val make : kind -> Param.t list -> Type.t -> Stmt.t list -> t
+
+    (** Print a lambda. *)
+    val print : Format.formatter -> t -> unit
+  end
+
+and Stmt :
   sig
     type t
 
     type node =
       | Noop of string
       | Val of name * Type.t option * Expr.t option
+      | Curry of name * Lambda.t
+      | Return of Expr.t
 
     (** Make a statement. *)
     val make: sr:Flx_srcref.t -> node:node -> t
