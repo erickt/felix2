@@ -85,8 +85,33 @@ module Literal =
             print_string s
   end
 
-module Expr =
-  struct
+module rec Expr :
+  sig
+    type t
+
+    type node =
+      | Literal of Literal.t
+      | Tuple of t list
+      | Name of string
+      | Sum of t list
+      | Product of t list
+      | Lambda of Lambda.t
+
+    (** Make an expression. *)
+    val make: sr:Flx_srcref.t -> node:node -> t
+
+    (** Return the expression's node. *)
+    val node: t -> node
+
+    (** Return the expression's source reference. *)
+    val sr: t -> Flx_srcref.t
+
+    (** Return the unit expression. *)
+    val unit: sr:Flx_srcref.t -> t
+
+    (** Print an expression. *)
+    val print: Format.formatter -> t -> unit
+  end = struct
     type t = { sr: Flx_srcref.t; node: node }
 
     and node =
@@ -95,6 +120,7 @@ module Expr =
       | Name of string
       | Sum of t list
       | Product of t list
+      | Lambda of Lambda.t
 
     (** make an expression. *)
     let make ~sr ~node = { sr; node }
@@ -114,6 +140,7 @@ module Expr =
       | Name name -> print_variant1 ppf "Name" print_string name
       | Sum es -> print_variant1 ppf "Sum" (Flx_list.print print) es
       | Product es -> print_variant1 ppf "Product" (Flx_list.print print) es
+      | Lambda lambda -> print_variant1 ppf "Lambda" Lambda.print lambda
 
     (** Print an expression. *)
     and print ppf { sr; node } =
@@ -122,8 +149,22 @@ module Expr =
         "node" print_node node
   end
 
-module Parameter =
-  struct
+and Parameter :
+  sig
+    type kind = Val
+
+    type t = private {
+      kind: kind;
+      name: name;
+      typ: Type.t;
+      default: Expr.t option }
+
+    (** Make a parameter. *)
+    val make: ?default:Expr.t -> kind:kind -> name:name -> typ:Type.t -> t
+
+    (** Print a parameter. *)
+    val print: Format.formatter -> t -> unit
+  end = struct
     type kind = Val
 
     type t = {
@@ -148,8 +189,18 @@ module Parameter =
 
 (** A param is a set of curry-able parameters that can have a precondition test
  * set on them. *)
-module Param =
-  struct
+and Param :
+  sig
+    type t = private {
+      parameters: Parameter.t list;
+      precondition: Expr.t option }
+
+    (** Make a param. *)
+    val make : ?precondition:Expr.t -> Parameter.t list -> t
+
+    (** Print a param. *)
+    val print: Format.formatter -> t -> unit
+  end = struct
     type t = { parameters: Parameter.t list; precondition: Expr.t option }
 
     let make ?precondition parameters = { parameters; precondition }
@@ -160,7 +211,7 @@ module Param =
         "precondition" (print_opt Expr.print) precondition
   end
 
-module rec Lambda :
+and Lambda :
   sig
     type kind =
       | Function

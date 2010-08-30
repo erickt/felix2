@@ -81,6 +81,27 @@ let to_sr = function
       Flx_srcref.make (filename, to_int fl, to_int fc, to_int ll, to_int ll)
   | sexp -> error sexp "Invalid source reference"
 
+(** Parse a type. *)
+let to_type =
+  let open Type in
+  function
+  (* typedef foo *)
+  | List [Id "ast_name"; sr; (Id name | Str name); List ts] ->
+      (* Ignoring ts for the moment. *)
+      make ~sr:(to_sr sr) ~node:(Name name)
+
+  | Id "typ_none" ->
+      make ~sr:Flx_srcref.dummy_sr ~node:Unknown
+
+  | sexp -> error sexp "Invalid type"
+
+(** Parse type variables. *)
+let rec to_type_variables sexp =
+  match sexp with
+  | List [pvs; aux] -> pvs, aux
+  | _ -> error sexp "Invalid type variable"
+
+(** Parse a literal. *)
 let to_literal sexp =
   let open Literal in
   match sexp with
@@ -96,9 +117,10 @@ let to_literal sexp =
 
   | _ -> error sexp "Invalid literal"
 
-let rec to_expr =
+(** Parse an expression. *)
+let rec to_expr sexp =
   let open Expr in
-  function
+  match sexp with
   (* "foo" *)
   | Str s ->
       make ~sr:Flx_srcref.dummy_sr ~node:(Literal (Literal.string s))
@@ -127,27 +149,14 @@ let rec to_expr =
   | List [Id "ast_product"; sr; List es] ->
       make ~sr:(to_sr sr) ~node:(Product (List.map to_expr es))
 
+  (* fun <arg1> [<arg2> ...] => <expr> *)
+  | List [Id "ast_lambda"; sr; lambda] ->
+      make ~sr:(to_sr sr) ~node:(Lambda (to_lambda' lambda))
+
   | sexp -> error sexp "Invalid expression"
 
-let to_type =
-  let open Type in
-  function
-  (* typedef foo *)
-  | List [Id "ast_name"; sr; (Id name | Str name); List ts] ->
-      (* Ignoring ts for the moment. *)
-      make ~sr:(to_sr sr) ~node:(Name name)
-
-  | Id "typ_none" ->
-      make ~sr:Flx_srcref.dummy_sr ~node:Unknown
-
-  | sexp -> error sexp "Invalid type"
-
-let rec to_type_variables sexp =
-  match sexp with
-  | List [] -> []
-  | _ -> error sexp "Invalid type variable"
-
-let to_parameter sexp =
+(** Parse a parameter. *)
+and to_parameter sexp =
   let open Parameter in
   match sexp with
   | List [Id kind; Str name; typ; default] ->
@@ -162,7 +171,8 @@ let to_parameter sexp =
 
   | _ -> error sexp "Invalid parameter"
 
-let to_param sexp =
+(** Parse a param. *)
+and to_param sexp =
   let open Param in
   match sexp with
   | List [List parameter; precondition] ->
@@ -172,27 +182,47 @@ let to_param sexp =
 
   | _ -> error sexp "Invalid parameter"
 
-let rec to_lambda' sexp vs params return_typ postcondition kind stmts =
+(** Parse a list of params. *)
+and to_params sexp =
+  match sexp with
+  | List params -> List.map to_param params
+  | _ -> error sexp "Invalid params"
+
+(** Parse the return type. *)
+and to_return_type sexp =
+  match sexp with
+  | List [return_typ; postcondition] ->
+      to_type return_typ, to_option to_expr postcondition
+
+  | _ -> error sexp "Invalid return type"
+
+(** Parse a lambda function. *)
+and to_lambda' sexp =
   let open Lambda in
+  match sexp with
+  | List [kind; vs; params; return_typ; stmts] ->
+      let kind = to_kind kind in
 
-  (* Ignoring type variables (vs) for now. *)
-  (*
-  let vs = List.map to_type_variables vs in
-  *)
+      (* Ignoring type variables (vs) for now. *)
+      let _ = to_type_variables vs in
 
-  let params = List.map to_param params in
+      let params = to_params params in
 
-  let kind =
-    match kind with
-    | "Function" -> Lambda.Function
-    | _ -> error sexp "unknown function kind %S" kind
-  in
+      (* Ignoring the postcondition for now. *)
+      let return_typ, _ = to_return_type return_typ in
 
-  let return_typ = to_type return_typ in
+      let stmts = to_stmts stmts in
+      Lambda.make kind params return_typ stmts
 
-  let stmts = List.map to_stmt stmts in
-  Lambda.make kind params return_typ stmts
+  | _ -> error sexp "Invalid lambda"
 
+(** Parse a function kind. *)
+and to_kind sexp =
+  match sexp with
+  | Id "Function" -> Lambda.Function
+  | _ -> error sexp "Invalid function kind"
+
+(** Parse a statement. *)
 and to_stmt sexp =
   let open Stmt in
   match sexp with
@@ -201,6 +231,8 @@ and to_stmt sexp =
   (* val a = <expr>; *)
   | List [Id "ast_val_decl"; sr; Str name; vs; typ; expr] ->
       (* Ignoring type variables (vs) for now. *)
+      let _ = to_type_variables vs in
+
       make
         ~sr:(to_sr sr)
         ~node:(Val (
@@ -209,22 +241,19 @@ and to_stmt sexp =
           to_option to_expr expr))
 
   (* fun foo (...) = ... *)
-  | List [Id "ast_curry";
-          sr;
-          Str name;
-          List vs;
-          List params;
-          List [return_typ; postcondition];
-          Id kind;
-          List stmts]
-    ->
-      let lambda = to_lambda' sexp vs params return_typ postcondition kind stmts in
-      make ~sr:(to_sr sr) ~node:(Curry (name, lambda))
+  | List [Id "ast_curry"; sr; Str name; lambda] ->
+      make ~sr:(to_sr sr) ~node:(Curry (name, to_lambda' lambda))
 
   | List [Id "ast_fun_return"; sr; expr] ->
       make ~sr:(to_sr sr) ~node:(Return (to_expr expr))
 
   | _ -> error sexp "Invalid statement"
+
+(** Parse a list of statements. *)
+and to_stmts sexp =
+  match sexp with
+  | List stmts -> List.map to_stmt stmts
+  | _ -> error sexp "Invalid statements"
 
 (** Prints out the s-expression to the formatter. *)
 let rec print ppf = function

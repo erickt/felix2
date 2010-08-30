@@ -61,7 +61,7 @@ module Literal :
     val print: Format.formatter -> t -> unit
   end
 
-module Expr :
+module rec Expr :
   sig
     type t
 
@@ -71,6 +71,7 @@ module Expr :
       | Name of string
       | Sum of t list
       | Product of t list
+      | Lambda of Lambda.t
 
     (** Make an expression. *)
     val make: sr:Flx_srcref.t -> node:node -> t
@@ -88,7 +89,7 @@ module Expr :
     val print: Format.formatter -> t -> unit
   end
 
-module Parameter :
+and Parameter :
   sig
     type kind = Val
 
@@ -107,7 +108,7 @@ module Parameter :
 
 (** A param is a set of curry-able parameters that can have a precondition test
  * set on them. *)
-module Param :
+and Param :
   sig
     type t = private {
       parameters: Parameter.t list;
@@ -120,7 +121,7 @@ module Param :
     val print: Format.formatter -> t -> unit
   end
 
-module rec Lambda :
+and Lambda :
   sig
     type kind =
       | Function

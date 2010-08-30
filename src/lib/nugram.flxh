@@ -475,22 +475,22 @@ syntax functions {
 
   x[slambda_pri] := sadjectives "fun" stvarlist slambda_fun_args fun_return_type = scompound =>#
     """
-    `(ast_lambda (,_3 ,_4 ,(first _5) ,_7))
+    `(ast_lambda ,_sr (Function ,_3 ,_4 ,_5 ,_7))
     """;
 
   x[slambda_pri] := sadjectives "fun" stvarlist slambda_fun_args fun_return_type "=>" sexpr =>#
     """
-    `(ast_lambda (,_3 ,_4 ,(first _5) ((ast_fun_return ,_sr ,_7))))
+    `(ast_lambda ,_sr (Function ,_3 ,_4 ,_5 ((ast_fun_return ,_sr ,_7))))
     """;
 
   x[slambda_pri] := sadjectives "proc" stvarlist slambda_fun_args scompound =>#
     """
-    `(ast_lambda (,_3 ,_4 ast_void ,_5))
+    `(ast_lambda ,_sr (Function ,_3 ,_4 (ast_void none) ,_5))
     """;
 
   x[slambda_pri] := sadjectives "proc" stvarlist scompound =>#
     """
-    `(ast_lambda (,_3 ((() none)) ast_void ,_4))
+    `(ast_lambda ,_sr (Function ,_3 ((() none)) (ast_void none) ,_4))
     """;
 
   sadjective := k"inline" =># "'InlineFunction";
@@ -534,13 +534,13 @@ syntax functions {
   sfunction_definition := sadjectives sfun_kind sdeclname sfun_arg* fun_return_type "=>" sexpr ";" =>#
     """
       (let ((body `((ast_fun_return ,_sr ,_7))))
-      `(ast_curry ,_sr ,(first _3) ,(second _3) ,_4 ,_5 ,(cal_funkind _1 _2) ,body)
+      `(ast_curry ,_sr ,(first _3) (,(cal_funkind _1 _2) ,(second _3) ,_4 ,_5 ,body))
       )
     """;
 
   sfunction_definition := sadjectives sfun_kind sdeclname sfun_arg* fun_return_type = scompound =>#
     """
-      `(ast_curry ,_sr ,(first _3) ,(second _3) ,_4 ,_5 ,(cal_funkind _1 _2) ,_7)
+      `(ast_curry ,_sr ,(first _3) (,(cal_funkind _1 _2) ,(second _3) ,_4 ,_5 ,_7))
     """;
 
   sopt_cstring := = scode_spec =># "`(some ,_2)";
@@ -603,7 +603,7 @@ syntax functions {
         (f (lambda (ne)`(ast_init ,_sr ,(first ne) ,(second ne))))
         (body (append (map f inits) body))
       )
-      `(ast_curry ,_sr ,name ,vs ,args (,ret ,traint) Ctor ,body))
+      `(ast_curry ,_sr ,name (Ctor ,vs ,args (,ret ,traint) ,body)))
     """;
 
   sctor_definition := "ctor" stvarlist sname sfun_arg+ sopt_traint_eq scompound =>#
@@ -617,7 +617,7 @@ syntax functions {
         (body _6)
         (args _4)
       )
-      `(ast_curry ,_sr ,name ,vs ,args (,ret ,traint) Function ,body))
+      `(ast_curry ,_sr ,name (Function ,vs ,args (,ret ,traint) ,body)))
     """;
 
   sctor_definition := "ctor" stvarlist sname sfun_arg+ sopt_traint "=>" sexpr ";" =>#
@@ -631,17 +631,17 @@ syntax functions {
         (body `((ast_fun_return ,_sr ,_7)))
         (args _4)
       )
-      `(ast_curry ,_sr ,name ,vs ,args (,ret ,traint) Function ,body))
+      `(ast_curry ,_sr ,name (Function ,vs ,args (,ret ,traint) ,body)))
     """;
 
   sprocedure_definition := sadjectives sproc_kind sdeclname sfun_arg* sopt_traint_eq scompound =>#
     """
-      `(ast_curry ,_sr ,(first _3) ,(second _3) ,_4 (ast_void ,_5) ,(cal_funkind _1 _2) ,_6)
+      `(ast_curry ,_sr ,(first _3) (,(cal_funkind _1 _2) ,(second _3) ,_4 (ast_void ,_5) ,_6))
     """;
 
   sprocedure_definition := sadjectives sproc_kind sdeclname sfun_arg* "=>" tstatement =>#
     """
-      `(ast_curry ,_sr ,(first _3) ,(second _3) ,_4 (ast_void none) ,(cal_funkind _1 _2) (,_6))
+      `(ast_curry ,_sr ,(first _3) (,(cal_funkind _1 _2) ,(second _3) ,_4 (ast_void none) (,_6)))
     """;
 }
 
