@@ -31,8 +31,8 @@ module Type =
     (** Return the type's source reference. *)
     let sr { sr } = sr
 
-    (** Return a free type variable. *)
-    let variable ?sr index : t = make ?sr (Variable index)
+    (** Return a type variable. *)
+    let variable ?sr var = make ?sr (Variable var)
 
     (** Return the int type. *)
     let integer ?sr kind = make ?sr (Integer kind)
