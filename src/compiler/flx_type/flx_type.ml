@@ -1,49 +1,144 @@
 open Format
 open Flx_format
 
-module Ast_type = Flx_ast.Type
-module Ast_literal = Flx_ast.Literal
-module Ast_expr = Flx_ast.Expr
-module Ast_stmt = Flx_ast.Stmt
-
 type name = Flx_ast.name
 
 module Type =
   struct
-    include Ast_type
+    type int_kind =
+      | Int
+      | Uint
+
+    type t = { sr: Flx_srcref.t; node: node }
+
+    and node =
+      | Variable of int
+      | Integer of int_kind
+      | String
+      | Name of string
+      | Tuple of t list
+      | Arrow of t * t
+
+    (** Make a type. *)
+    let make ?(sr=Flx_srcref.dummy_sr) node = { sr; node }
+
+    (** Return the type's node. *)
+    let node { node } = node
+
+    (** Return the type's source reference. *)
+    let sr { sr } = sr
+
+    (** Return a free type variable. *)
+    let variable ?sr index : t = make ?sr (Variable index)
+
+    (** Return the int type. *)
+    let integer ?sr kind = make ?sr (Integer kind)
+
+    (** Return the string type. *)
+    let string ?sr () = make ?sr String
+
+    (** Return a tuple type. *)
+    let tuple ?sr ts = make ?sr (Tuple ts)
+
+    (** Return the unit type. *)
+    let unit ?sr () = tuple ?sr []
+
+    (** Return the arrow type. *)
+    let arrow ?sr lhs rhs = make ?sr (Arrow (lhs, rhs))
+
+    let rec print_node ppf = function
+      | Variable n -> print_variant1 ppf "Variable" pp_print_int n
+      | Integer k -> print_variant1 ppf "Integer" print_int_kind k
+      | String -> print_variant0 ppf "String"
+      | Name s -> print_variant1 ppf "Name" print_string s
+      | Tuple ts -> print_variant1 ppf "Tuple" (Flx_list.print print) ts
+      | Arrow (lhs, rhs) -> print_variant2 ppf "Arrow" print lhs print rhs
+
+    and print_int_kind ppf = function
+      | Int -> print_variant0 ppf "Int"
+      | Uint -> print_variant0 ppf "Uint"
+
+    (** Print a type. *)
+    and print ppf { sr; node } =
+      print_record2 ppf
+        "sr" Flx_srcref.print sr
+        "node" print_node node
   end
 
-module Literal = Ast_literal
+module Literal =
+  struct
+    type int_kind = Type.int_kind
+
+    type t = node
+
+    and node =
+      | Integer of Type.int_kind * Big_int.big_int
+      | String of string
+
+    (** Make a literal. *)
+    let make node = node
+
+    (** Return the literal's node. *)
+    let node literal = literal
+
+    (** Return the literal's type. *)
+    let typ = function
+      | Integer (kind, _) -> Type.integer kind
+      | String _ -> Type.string ()
+
+    (** Make a literal integer. *)
+    let integer kind num = make (Integer (kind, num))
+
+    (** Make a literal string. *)
+    let string s = make (String s)
+
+    (** Print a literal. *)
+    let print ppf = function
+      | Integer (k,i) ->
+          print_variant2 ppf "Integer"
+            Type.print_int_kind k
+            print_big_int i
+      | String s ->
+          print_variant1 ppf "String"
+            print_string s
+  end
 
 module Expr =
   struct
-    type t = { sr: Flx_srcref.t; node: node; typ: Type.t }
+    type t = { sr: Flx_srcref.t; typ: Type.t; node: node }
 
     and node =
       | Literal of Literal.t
       | Tuple of t list
       | Name of string
-      | Sum of t list
-      | Product of t list
+      | Sum of t * t
+      | Product of t * t
 
-    (** make an expression. *)
-    let make ~sr ~node ~typ = { sr; node; typ }
+    (** Make an expression. *)
+    let make ?(sr=Flx_srcref.dummy_sr) typ node = { sr; typ; node }
 
-    (** return the expression's node. *)
-    let node { node } = node
-
-    (** return the expression's source reference. *)
+    (** Return the expression's source reference. *)
     let sr { sr } = sr
 
-    (** return the expression's type. *)
+    (** Return the expression's type. *)
     let typ { typ } = typ
 
+    (** Return the expression's node. *)
+    let node { node } = node
+
+    (** Return a literal expression. *)
+    let literal ?sr literal = make ?sr (Literal.typ literal) (Literal literal)
+
+    (** Return a tuple expression. *)
+    let tuple ?sr es = make ?sr (Type.tuple (List.map typ es)) (Tuple es)
+
+    (** Print an expression's node. *)
     let rec print_node ppf = function
       | Literal lit -> print_variant1 ppf "Literal" Literal.print lit
       | Tuple es -> print_variant1 ppf "Tuple" (Flx_list.print print) es
       | Name name -> print_variant1 ppf "Name" print_string name
-      | Sum es -> print_variant1 ppf "Sum" (Flx_list.print print) es
-      | Product es -> print_variant1 ppf "Product" (Flx_list.print print) es
+      | Sum (lhs,rhs) -> print_variant2 ppf "Sum" print lhs print rhs
+      | Product (lhs,rhs) -> print_variant2 ppf "Product" print lhs print rhs
 
     (** Print an expression. *)
     and print ppf { sr; node; typ } =
@@ -53,48 +148,220 @@ module Expr =
         "typ" Type.print typ
   end
 
-module Lambda =
-  struct
-    type t = { typ: Type.t }
+module rec Parameter :
+  sig
+    type kind = Val
 
-    let typ { typ } = typ
+    type t = private {
+      kind: kind;
+      name: name;
+      typ: Type.t;
+      default: Expr.t option }
 
-    let print ppf { typ } =
-      print_record1 ppf
+    (** Make a parameter. *)
+    val make: kind:kind -> name:name -> typ:Type.t -> default:Expr.t option -> t
+
+    (** Print a parameter. *)
+    val print: Format.formatter -> t -> unit
+  end = struct
+    type kind = Val
+
+    type t = {
+      kind: kind;
+      name: name;
+      typ: Type.t;
+      default: Expr.t option }
+
+    (** Make a parameter. *)
+    let make ~kind ~name ~typ ~default = { kind; name; typ; default }
+
+    (** Print a parameter kind. *)
+    let print_kind ppf = function
+      | Val -> print_variant0 ppf "Val"
+
+    (** Print a parameter. *)
+    let print ppf { kind; name; typ; default } =
+      print_record4 ppf
+        "kind" print_kind kind
+        "name" print_string name
         "typ" Type.print typ
+        "default" (print_opt Expr.print) default
   end
 
-module Stmt =
+(** A param is a set of curry-able parameters that can have a precondition test
+ * set on them. *)
+and Param :
+  sig
+    type t = private {
+      parameters: Parameter.t list;
+      precondition: Expr.t option }
+
+    (** Make a param. *)
+    val make : ?precondition:Expr.t -> Parameter.t list -> t
+
+    (** Return the param's type. *)
+    val typ : t -> Type.t
+
+    (** Print a param. *)
+    val print: Format.formatter -> t -> unit
+  end = struct
+    type t = {
+      parameters: Parameter.t list;
+      precondition: Expr.t option }
+
+    (** Make a param. *)
+    let make ?precondition parameters = { parameters; precondition }
+
+    (** Return the param's type. *)
+    let typ { parameters } =
+      Type.tuple (List.map (fun p -> p.Parameter.typ) parameters)
+
+    (** Print a param. *)
+    let print ppf { parameters; precondition } =
+      print_record2 ppf
+        "parameters" (Flx_list.print Parameter.print) parameters
+        "precondition" (print_opt Expr.print) precondition
+  end
+
+and Lambda :
+  sig
+    type kind =
+      | Function
+
+    type t = private {
+      kind: kind;
+      params: Param.t list;
+      return_typ: Type.t;
+      stmts: Stmt.t list }
+
+    (** Make a lambda. *)
+    val make : kind -> Param.t list -> Type.t -> Stmt.t list -> t
+
+    (** Return the lambda's type. *)
+    val typ : t -> Type.t
+
+    (** Print a lambda. *)
+    val print : formatter -> t -> unit
+  end = struct
+    type kind =
+      | Function
+
+    type t = {
+      kind: kind;
+      params: Param.t list;
+      return_typ: Type.t;
+      stmts: Stmt.t list }
+
+    (** Make a lambda. *)
+    let make kind params return_typ stmts =
+      { kind; params; return_typ; stmts }
+
+    (** Return the lambda's type. *)
+    let typ { params; return_typ } =
+      List.fold_right begin fun param typ ->
+        Type.arrow (Param.typ param) typ
+      end
+      params
+      return_typ
+
+    (** Print a function kind. *)
+    let print_kind ppf = function
+      | Function -> print_variant0 ppf "Function"
+
+    (** Print a lambda. *)
+    let print ppf { kind; params; return_typ; stmts } =
+      print_record4 ppf
+        "kind" print_kind kind
+        "params" (Flx_list.print Param.print) params
+        "return_typ" Type.print return_typ
+        "stmts" (Flx_list.print Stmt.print) stmts
+  end
+
+and Stmt :
+  sig
+    type t
+
+    type node =
+      | Noop of string
+      | Value of name * Expr.t
+      | Curry of name * Lambda.t
+      | Return of Expr.t
+
+    (** Make a statement. *)
+    val make: ?sr:Flx_srcref.t -> Type.t -> node -> t
+
+    (** Return the statement's node. *)
+    val node: t -> node
+
+    (** Return the statement's source reference. *)
+    val sr: t -> Flx_srcref.t
+
+    (** Return the statement's type. *)
+    val typ: t -> Type.t
+
+    (** Return a no-op statement. *)
+    val noop: ?sr:Flx_srcref.t -> string -> t
+
+    (** Return a value definition statement. *)
+    val value: ?sr:Flx_srcref.t -> name -> Expr.t -> t
+
+    (** Return a curry-able function definition statement. *)
+    val curry: ?sr:Flx_srcref.t -> name -> Lambda.t -> t
+
+    (** Return a return statement. *)
+    val return: ?sr:Flx_srcref.t -> Expr.t -> t
+
+    (** Print a statement. *)
+    val print: Format.formatter -> t -> unit
+  end =
   struct
-    type t = { sr: Flx_srcref.t; node: node; typ: Type.t }
+    type t = { sr: Flx_srcref.t; typ: Type.t; node: node; }
 
     and node =
       | Noop of string
-      | Val of name * Expr.t
+      | Value of name * Expr.t
       | Curry of name * Lambda.t
+      | Return of Expr.t
 
-    (** make a statement. *)
-    let make ~sr ~node ~typ = { sr; node; typ }
+    (** Make a statement. *)
+    let make ?(sr=Flx_srcref.dummy_sr) typ node = { sr; typ; node }
 
-    (** return the statement's node. *)
-    let node { node } = node
-
-    (** return the statement's source reference. *)
+    (** Return the statement's source reference. *)
     let sr { sr } = sr
 
-    (** return the statement's type. *)
+    (** Return the statement's type. *)
     let typ { typ } = typ
 
+    (** Return the statement's node. *)
+    let node { node } = node
+
+    (** Return a value definition statement. *)
+    let value ?sr name expr = make ?sr (Expr.typ expr) (Value (name, expr))
+
+    (** Return a no-op statement. *)
+    let noop ?sr s = make ?sr (Type.unit ()) (Noop s)
+
+    (** Return a curry-able function declaration. *)
+    let curry ?sr name lambda =
+      make ?sr (Lambda.typ lambda) (Curry (name, lambda))
+
+    (** Return a return statement. *)
+    let return ?sr expr = make ?sr (Expr.typ expr) (Return expr)
+
+    (** Print a statement node. *)
     let rec print_node ppf = function
       | Noop s -> print_variant1 ppf "Noop" print_string s
-      | Val (name,expr) ->
-          print_variant2 ppf "Val"
+      | Value (name,expr) ->
+          print_variant2 ppf "Value"
             print_string name
             Expr.print expr
       | Curry (name,lambda) ->
           print_variant2 ppf "Curry"
             print_string name
             Lambda.print lambda
+      | Return expr ->
+          print_variant1 ppf "Return"
+            Expr.print expr
 
     (** Print a statement. *)
     and print ppf { sr; node; typ } =

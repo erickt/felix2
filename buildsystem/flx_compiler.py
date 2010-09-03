@@ -53,7 +53,8 @@ def build_flx_type(phase):
         srcs=Path.glob(path / '*.ml{,i}'),
         libs=[
             build_flx_misc(phase),
-            build_flx_core(phase)])
+            build_flx_core(phase)],
+        packages=['batteries'])
 
 def build_flx_drivers(phase):
     path = Path('src/compiler/drivers')

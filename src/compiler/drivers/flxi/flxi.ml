@@ -165,18 +165,22 @@ let print_ast ~print sr ocs =
 
 (* Parse a type tree and print it out. *)
 let print_typecheck =
-  let env = ref Flx_type_env.empty in
+  let env = ref Flx_env.empty in
+  let tve = ref Flx_tve.empty in
+
   fun ~print sr ocs ->
   Flx_profile.call "Flxi.print_ast" begin fun () ->
     let open Flx_type in
     let sexp = Flx_sexp.of_ocs ocs in
     let stmt = Flx_sexp.to_stmt sexp in
-    let env', stmt = Flx_bind.bind_stmt !env stmt in
+    let env', tve', stmt = Flx_bind.bind_stmt !env !tve stmt in
     env := env';
+    tve := tve';
 
-    if print then printf "SEMA: %a@.TYPE ENV: %a@.@."
+    if print then printf "SEMA: %a@.ENV: %a@.TVE: %a@."
       Stmt.print stmt
-      Flx_type_env.print !env;
+      (Flx_env.print Type.print) !env
+      Flx_tve.print !tve;
 
     ()
   end
