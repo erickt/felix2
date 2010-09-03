@@ -4,11 +4,11 @@ open Flx_type
 module Ast_expr = Flx_ast.Expr
 module Ast_lambda = Flx_ast.Lambda
 
-exception Type_error of string
+exception Type_error of Flx_srcref.t * string
 
 (** Error out *)
-let error format =
-  ksprintf (fun s -> raise (Type_error s)) format
+let error sr format =
+  ksprintf (fun s -> raise (Type_error (sr, s))) format
 
 let bind_type = ()
 
@@ -36,7 +36,7 @@ let rec bind_expr env expr =
       let typ =
         begin match Flx_type_env.find env name with
         | Some typ -> typ
-        | None -> error "unbound variable named \"%s\"" name
+        | None -> error sr "unbound variable named \"%s\"" name
         end
       in
       make ~sr ~typ ~node:(Name name)
@@ -94,7 +94,7 @@ let bind_stmt env stmt =
 
   | Ast_stmt.Val (name,constraint_type,expr) ->
       begin match expr with
-      | None -> error "val statement not provided an expression"
+      | None -> error sr "val statement not provided an expression"
       | Some expr ->
           let expr = bind_expr env expr in
           let typ : Type.t = Expr.typ expr in
@@ -118,4 +118,4 @@ let bind_stmt env stmt =
       let env, lambda = bind_lambda env lambda in
       env, make ~sr ~typ:(Lambda.typ lambda) ~node:(Curry (name, lambda))
 
-  | _ -> error "Cannot bind statement:@ %a" Ast_stmt.print stmt
+  | _ -> error sr "Cannot bind statement:@ %a" Ast_stmt.print stmt

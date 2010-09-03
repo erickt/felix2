@@ -113,7 +113,7 @@ let parse_channel ~name ~print parser_state handle_stmt channel args =
 
           Some !old_parser_state
 
-      | Flx_bind.Type_error e ->
+      | Flx_bind.Type_error ((_,l1,c1,l2,c2) as sr, e) ->
           (* Reset our state. *)
           first_line := true;
 
@@ -121,6 +121,10 @@ let parse_channel ~name ~print parser_state handle_stmt channel args =
             eprintf "%s@." (Printexc.get_backtrace ());
           end;
 
+          printf "@.%s@." (Flx_srcref.to_string sr);
+          printf "%s@." (Flx_io.get_lines
+            (IO.input_string (Buffer.contents buffer))
+            l1 c1 l2 c2);
           printf "Type error: %s@." e;
 
           (* Ignore the rest of the line. *)
