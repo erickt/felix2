@@ -1,6 +1,9 @@
 open Format
 open Flx_format
 
+(** Raised when we encounter a type error. *)
+exception Type_error of Flx_srcref.t * string
+
 type name = Flx_ast.name
 
 module Type =

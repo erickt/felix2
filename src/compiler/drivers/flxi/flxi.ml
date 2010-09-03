@@ -113,7 +113,7 @@ let parse_channel ~name ~print parser_state handle_stmt channel args =
 
           Some !old_parser_state
 
-      | Flx_bind.Type_error ((_,l1,c1,l2,c2) as sr, e) ->
+      | Flx_type.Type_error ((_,l1,c1,l2,c2) as sr, e) ->
           (* Reset our state. *)
           first_line := true;
 

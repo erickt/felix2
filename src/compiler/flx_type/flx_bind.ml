@@ -10,8 +10,6 @@ module Ast_param = Flx_ast.Param
 module Ast_lambda = Flx_ast.Lambda
 module Ast_stmt = Flx_ast.Stmt
 
-exception Type_error of Flx_srcref.t * string
-
 (** Error out *)
 let error sr format =
   ksprintf (fun s -> raise (Type_error (sr, s))) format
