@@ -38,13 +38,16 @@ and unify' tve typ1 typ2 =
   let open Type in
 
   match node typ1, node typ2 with
+  | Integer, Integer -> tve
+  (*
   | Integer kind1, Integer kind2 when kind1 = kind2 -> tve
   | String, String -> tve
+  *)
   | Arrow (lhs1,rhs1), Arrow (lhs2,rhs2) ->
       unify (unify tve rhs1 rhs2) lhs1 lhs2
   | Variable var1, _ -> unify_free_variable tve var1 typ2
   | _, Variable var2 -> unify_free_variable tve var2 typ1
-  | _, _ -> error (sr typ2)  "%a and %a" print typ1 print typ2
+  | _, _ -> error ~sr:(sr typ2)  "%a and %a" print typ1 print typ2
 
 and unify_free_variable tve var1 typ2 =
   let open Type in
@@ -58,7 +61,7 @@ and unify_free_variable tve var1 typ2 =
 
   | _ ->
       if occurs tve var1 typ2 then
-        error (sr typ2) "occurs check: %a in %a"
+        error ~sr:(sr typ2) "occurs check: %a in %a"
           print (variable var1)
           print (Flx_tve.substitute tve typ2)
       else
@@ -68,20 +71,27 @@ and occurs tve var1 typ2 =
   let open Type in
 
   match node typ2 with
+  (*
   | Integer _
   | String -> false
+  *)
+  | Integer -> false
   | Arrow (lhs, rhs) -> occurs tve var1 lhs || occurs tve var1 rhs
   | Variable var2 ->
       begin match Flx_tve.find tve var2 with
       | None -> var1 = var2
       | Some typ2 -> occurs tve var1 typ2
       end
-  | _ -> error (sr typ2) "occurs does not support %a yet" print typ2
+  (*
+  | _ -> error ~sr:(sr typ2) "occurs does not support %a yet" print typ2
+  *)
 
 
+  (*
 let bind_int_kind = function
   | Ast_type.Int_int -> Type.Int
   | Ast_type.Int_uint -> Type.Uint
+  *)
 
 
 let bind_type env tve typ =
@@ -98,13 +108,18 @@ let bind_type env tve typ =
   (*
   | Int int_kind -> env, tve, Type.integer ~sr (bind_int_kind int_kind)
   *)
-  | Int _ -> env, tve, Type.integer ~sr Type.Int
+  | Int _ -> env, tve, Type.integer ~sr ()
+  | Name "int" -> env, tve, Type.integer ~sr ()
+  (*
   | Name "int" -> env, tve, Type.integer ~sr Type.Int
   | Name "uint" -> env, tve, Type.integer ~sr Type.Uint
+  *)
 
   (* Bind string types. *)
+  (*
   | String -> env, tve, Type.string ~sr ()
   | Name "string" -> env, tve, Type.string ~sr ()
+  *)
 
   | Name name ->
       begin match Flx_env.find env name with
@@ -120,8 +135,12 @@ let bind_literal literal =
   let open Ast_literal in
 
   match node literal with
+  | Int (kind,num) -> Literal.integer num
+  | _ -> error "unsupported"
+  (*
   | Int (kind,num) -> Literal.integer (bind_int_kind kind) num
   | String s -> Literal.string s
+  *)
 
 
 (** Bind an AST expression to a typed expression. *)
@@ -136,9 +155,10 @@ let rec bind_expr env tve expr =
       let typ_lhs = Expr.typ lhs in
       let typ_rhs = Expr.typ rhs in
 
+      let int_typ = Type.integer () in
+      (*
       let int_typ = Type.integer Type.Int in
-
-      printf "unifying:@ %a to@ %a@." Type.print typ_lhs Type.print typ_rhs;
+      *)
 
       let tve = unify (unify tve typ_lhs int_typ) typ_rhs int_typ in
 
@@ -246,7 +266,25 @@ and bind_lambda env tve { Ast_lambda.kind; params; return_typ; stmts } =
 
   let env, tve, params = bind_params env tve params in
   let env, tve, return_typ = bind_type env tve return_typ in
-  let env, tve, stmts = bind_stmts env tve stmts in
+  let env, tve, stmts =
+    List.fold_left begin fun (env, tve, stmts) stmt ->
+      let env, tve, stmt = bind_stmt env tve stmt in
+
+      (* If the statement was a return statement, unify it's type with the
+       * lambda's return type. *)
+      let tve =
+        match Stmt.node stmt with
+        | Stmt.Return expr -> unify tve (Expr.typ expr) return_typ
+        | _ -> tve
+      in
+
+      env, tve, stmt :: stmts
+    end
+    (env, tve, [])
+    stmts
+  in
+  (* The statement list is now in reverse. *)
+  let stmts = List.rev stmts in
 
   env, tve, Lambda.make kind params return_typ stmts
 
