@@ -63,9 +63,12 @@ module Type =
 
     (** Print a type. *)
     and print ppf { sr; node } =
+      (*
       print_record2 ppf
         "sr" Flx_srcref.print sr
         "node" print_node node
+      *)
+      print_node ppf node
 
     let equals typ1 typ2 =
       let rec aux typ1 typ2 =
@@ -198,10 +201,13 @@ module rec Expr :
 
     (** Print an expression. *)
     and print ppf { sr; node; typ } =
+      (*
       print_record3 ppf
         "sr" Flx_srcref.print sr
-        "node" print_node node
+      *)
+      print_record2 ppf
         "typ" Type.print typ
+        "node" print_node node
   end
 
 and Parameter :
@@ -421,8 +427,11 @@ and Stmt :
 
     (** Print a statement. *)
     and print ppf { sr; node; typ } =
+      (*
       print_record3 ppf
         "sr" Flx_srcref.print sr
+        *)
+      print_record2 ppf
         "node" print_node node
         "typ" Type.print typ
   end
