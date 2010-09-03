@@ -15,9 +15,33 @@ let make_type_variable (n, tve) =
   (n + 1, tve), Type.variable n
 
 (** Find the type bound to the type variable name. *)
-let find (_, tve) index =
-  try Some (IntMap.find index tve)
+let find (_, tve) var =
+  try Some (IntMap.find var tve)
   with Not_found -> None
+
+(** Bind a free type variable to the type variable environment. *)
+let add (n, tve) var typ = n, IntMap.add var typ tve
+
+(** Subsitute type variables in a type. *)
+let rec substitute tve typ =
+  let open Type in
+
+  match node typ with
+  | Variable var ->
+      (* Look up the variable in the type variable environment. If we find it,
+       * recursively substitute types into that type variable. Otherwise, do
+       * nothing. *)
+      begin match find tve var with
+      | Some typ -> substitute tve typ
+      | None -> typ
+      end
+  | Arrow (lhs, rhs) ->
+      let lhs = substitute tve lhs in
+      let rhs = substitute tve rhs in
+      arrow ~sr:(sr typ) lhs rhs
+
+  | _ -> typ
+
 
 let print_map pp_value f table =
   Format.fprintf f "@[<hv0>@[<hv2>{.@ ";
