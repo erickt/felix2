@@ -11,7 +11,7 @@ module Ast_lambda = Flx_ast.Lambda
 module Ast_stmt = Flx_ast.Stmt
 
 (** Error out *)
-let error sr format =
+let error ?(sr=Flx_srcref.dummy_sr) format =
   ksprintf (fun s -> raise (Type_error (sr, s))) format
 
 
@@ -41,11 +41,11 @@ let bind_type env tve typ =
 
   | Name name ->
       begin match Flx_env.find env name with
-      | None -> error sr "Cannot find type named \"%s\"" name
+      | None -> error ~sr "Cannot find type named \"%s\"" name
       | Some typ -> env, tve, typ
       end
 
-  | _ -> error sr "Cannot bind type yet:@ %a" Ast_type.print typ
+  | _ -> error ~sr "Cannot bind type yet:@ %a" Ast_type.print typ
 
 
 (** Bind an AST literal to a typed literal. *)
@@ -71,7 +71,7 @@ let rec bind_expr env tve expr =
 
       (* Make sure all the types are the same. *)
       if not (Type.equals typ_lhs typ_rhs) then
-        error (Expr.sr rhs)
+        error ~sr:(Expr.sr rhs)
           "This expression has type@ %a but but expected type@ %a instead"
           Type.print typ_lhs
           Type.print typ_rhs;
@@ -88,7 +88,7 @@ let rec bind_expr env tve expr =
       let typ =
         begin match Flx_env.find env name with
         | Some typ -> typ
-        | None -> error sr "unbound variable named \"%s\"" name
+        | None -> error ~sr "unbound variable named \"%s\"" name
         end
       in
       env, tve, Expr.make ~sr typ (Expr.Name name)
@@ -106,7 +106,7 @@ let rec bind_expr env tve expr =
       let env, tve, typ, lhs, rhs = bind_binary_expr env tve lhs rhs in
       env, tve, Expr.make ~sr typ (Expr.Product (lhs, rhs))
 
-  | _ -> error sr "Cannot bind expression:@ %a" Ast_expr.print expr
+  | _ -> error ~sr "Cannot bind expression:@ %a" Ast_expr.print expr
 
 
 and bind_parameter env tve parameter =
@@ -183,7 +183,7 @@ and bind_stmt env tve stmt =
 
   | Val (name,constraint_type,expr) ->
       begin match expr with
-      | None -> error sr "val statement not provided an expression"
+      | None -> error ~sr "val statement not provided an expression"
       | Some expr ->
           let env, tve, expr = bind_expr env tve expr in
           let typ = Expr.typ expr in
@@ -199,7 +199,7 @@ and bind_stmt env tve stmt =
                 in
 
                 if constraint_type != typ then
-                  error sr
+                  error ~sr
                     "This expression of type %a but was expected of type %a"
                     Type.print typ
                     Type.print constraint_type;
