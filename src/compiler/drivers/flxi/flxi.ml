@@ -59,6 +59,17 @@ let parse_channel ~name ~print parser_state handle_stmt channel args =
     handle_stmt ~print:true sr stmt
   in
 
+  let print_error name sr error =
+    printf "%s@." (Flx_srcref.to_string sr);
+    printf "%s@." (Flx_io.get_lines
+      (IO.input_string (Buffer.contents buffer))
+      sr.Flx_srcref.start_line
+      sr.Flx_srcref.start_col
+      sr.Flx_srcref.end_line
+      sr.Flx_srcref.end_col);
+    printf "%s: %s@." name error
+  in
+
   (* Loop over each statement until we exit. *)
   let rec aux parser_state =
     match
@@ -79,7 +90,7 @@ let parse_channel ~name ~print parser_state handle_stmt channel args =
           printf "Fatal error: %s@." s;
           None
 
-      | Flx_exceptions.Syntax_error ((_,l1,c1,l2,c2) as sr, e) ->
+      | Flx_exceptions.Syntax_error (sr, e) ->
           (* Reset our state. *)
           first_line := true;
 
@@ -87,11 +98,7 @@ let parse_channel ~name ~print parser_state handle_stmt channel args =
             eprintf "%s@." (Printexc.get_backtrace ());
           end;
 
-          printf "@.%s@." (Flx_srcref.to_string sr);
-          printf "%s@." (Flx_io.get_lines
-            (IO.input_string (Buffer.contents buffer))
-            l1 c1 l2 c2);
-          printf "Syntax error: %s@." e;
+          print_error "Syntax error" sr e;
 
           (* Ignore the rest of the line. *)
           Flx_parse.flush_input lexbuf;
@@ -113,7 +120,7 @@ let parse_channel ~name ~print parser_state handle_stmt channel args =
 
           Some !old_parser_state
 
-      | Flx_type.Type_error ((_,l1,c1,l2,c2) as sr, e) ->
+      | Flx_type.Type_error (sr, e) ->
           (* Reset our state. *)
           first_line := true;
 
@@ -121,11 +128,7 @@ let parse_channel ~name ~print parser_state handle_stmt channel args =
             eprintf "%s@." (Printexc.get_backtrace ());
           end;
 
-          printf "@.%s@." (Flx_srcref.to_string sr);
-          printf "%s@." (Flx_io.get_lines
-            (IO.input_string (Buffer.contents buffer))
-            l1 c1 l2 c2);
-          printf "Type error: %s@." e;
+          print_error "Type error" sr e;
 
           (* Ignore the rest of the line. *)
           Flx_parse.flush_input lexbuf;

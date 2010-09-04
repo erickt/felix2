@@ -77,8 +77,13 @@ let to_list f = function
 
 (** Parse a source reference. *)
 let to_sr = function
-  | List [Str filename; fl; fc; ll; lc] ->
-      Flx_srcref.make (filename, to_int fl, to_int fc, to_int ll, to_int ll)
+  | List [Str filename; start_line; start_col; end_line; end_col] ->
+      Flx_srcref.make
+        filename
+        (to_int start_line)
+        (to_int start_col)
+        (to_int end_line)
+        (to_int end_col)
   | sexp -> error sexp "Invalid source reference"
 
 (** Parse a type. *)

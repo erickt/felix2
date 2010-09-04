@@ -55,21 +55,21 @@ let lexeme x = Lexing.lexeme (Dyp.std_lexbuf x)
 
 let getsr dyp =
   let s = dyp.symbol_start_pos() and e = dyp.symbol_end_pos() in
-  Flx_srcref.make (
-    s.pos_fname,
-    s.pos_lnum,
-    s.pos_cnum - s.pos_bol + 1,
-    e.pos_lnum,
-    e.pos_cnum - e.pos_bol)
+  Flx_srcref.make
+    s.pos_fname
+    s.pos_lnum
+    (s.pos_cnum - s.pos_bol + 1)
+    e.pos_lnum
+    (e.pos_cnum - e.pos_bol)
 
 let get_sr_from_lexbuf lexbuf =
   let b = (Dyp.std_lexbuf lexbuf) in
-  let file = b.lex_start_p.pos_fname in
-  let start_line = b.lex_start_p.pos_lnum in
-  let start_col = b.lex_start_p.pos_cnum - b.lex_start_p.pos_bol in
-  let end_line = b.lex_curr_p.pos_lnum in
-  let end_col = b.lex_curr_p.pos_cnum - b.lex_curr_p.pos_bol in
-  Flx_srcref.make (file, start_line, start_col, end_line, end_col)
+  Flx_srcref.make
+    (b.lex_start_p.pos_fname)
+    (b.lex_start_p.pos_lnum)
+    (b.lex_start_p.pos_cnum - b.lex_start_p.pos_bol)
+    (b.lex_curr_p.pos_lnum)
+    (b.lex_curr_p.pos_cnum - b.lex_curr_p.pos_bol)
 
 let incr_lineno lexbuf n = 
   let lexbuf = Dyp.std_lexbuf lexbuf in
@@ -149,10 +149,15 @@ let global_data = {
   pdebug = ref false;
 }
 
-let xsr (f, fl, fc, ll, lc) =
+let xsr { Flx_srcref.filename; start_line; start_col; end_line; end_col } =
+  let open Flx_srcref in
   Ocs_misc.make_slist
     Snull
-    ((Sint lc) :: (Sint ll) :: (Sint fc) :: (Sint ll) :: (Sstring f) :: [])
+    [ Sint end_col;
+      Sint end_line;
+      Sint start_col;
+      Sint start_line;
+      Sstring filename ]
 
 let buffer_add_ocs b r = Ocs_print.print_to_buffer b false r
 
