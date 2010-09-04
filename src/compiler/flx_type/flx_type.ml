@@ -66,6 +66,20 @@ module Type =
       print_record2 ppf
         "sr" Flx_srcref.print sr
         "node" print_node node
+
+    let equals typ1 typ2 =
+      let rec aux typ1 typ2 =
+        match node typ1, node typ2 with
+        | Variable var1, Variable var2 -> var1 = var2
+        | Integer kind1, Integer kind2 -> kind1 = kind2
+        | String, String -> true
+        | Name name1, Name name2 -> name1 = name2
+        | Tuple ts1, Tuple ts2 -> List.for_all2 aux ts1 ts2
+        | Arrow (lhs1, rhs1), Arrow (lhs2, rhs2) ->
+            aux lhs1 lhs2 && aux rhs1 rhs2
+        | _, _ -> false
+      in
+      try aux typ1 typ2 with Invalid_argument _ -> false
   end
 
 module Literal =

@@ -70,7 +70,7 @@ let rec bind_expr env tve expr =
       let typ_rhs = Expr.typ rhs in
 
       (* Make sure all the types are the same. *)
-      if typ_lhs != typ_rhs then
+      if not (Type.equals typ_lhs typ_rhs) then
         error (Expr.sr rhs)
           "This expression has type@ %a but but expected type@ %a instead"
           Type.print typ_lhs
