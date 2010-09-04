@@ -120,8 +120,42 @@ module Literal =
             print_string s
   end
 
-module Expr =
-  struct
+module rec Expr :
+  sig
+    type t
+
+    type node =
+      | Literal of Literal.t
+      | Tuple of t list
+      | Name of string
+      | Sum of t * t
+      | Product of t * t
+      | Lambda of Lambda.t
+
+    (** Make an expression. *)
+    val make: ?sr:Flx_srcref.t -> Type.t -> node -> t
+
+    (** Return the expression's source reference. *)
+    val sr: t -> Flx_srcref.t
+
+    (** Return the expression's type. *)
+    val typ: t -> Type.t
+
+    (** Return the expression's node. *)
+    val node: t -> node
+
+    (** Return a literal expression. *)
+    val literal: ?sr:Flx_srcref.t -> Literal.t -> t
+
+    (** Return a tuple expression. *)
+    val tuple: ?sr:Flx_srcref.t -> Expr.t list -> t
+
+    (** Return a lambda expression. *)
+    val lambda: ?sr:Flx_srcref.t -> Lambda.t -> t
+
+    (** Print an expression. *)
+    val print: Format.formatter -> t -> unit
+  end = struct
     type t = { sr: Flx_srcref.t; typ: Type.t; node: node }
 
     and node =
@@ -130,6 +164,7 @@ module Expr =
       | Name of string
       | Sum of t * t
       | Product of t * t
+      | Lambda of Lambda.t
 
     (** Make an expression. *)
     let make ?(sr=Flx_srcref.dummy_sr) typ node = { sr; typ; node }
@@ -149,6 +184,9 @@ module Expr =
     (** Return a tuple expression. *)
     let tuple ?sr es = make ?sr (Type.tuple (List.map typ es)) (Tuple es)
 
+    (** Return a lambda expression. *)
+    let lambda ?sr lambda = make ?sr (Lambda.typ lambda) (Lambda lambda)
+
     (** Print an expression's node. *)
     let rec print_node ppf = function
       | Literal lit -> print_variant1 ppf "Literal" Literal.print lit
@@ -156,6 +194,7 @@ module Expr =
       | Name name -> print_variant1 ppf "Name" print_string name
       | Sum (lhs,rhs) -> print_variant2 ppf "Sum" print lhs print rhs
       | Product (lhs,rhs) -> print_variant2 ppf "Product" print lhs print rhs
+      | Lambda lambda -> print_variant1 ppf "Lambda" Lambda.print lambda
 
     (** Print an expression. *)
     and print ppf { sr; node; typ } =
@@ -165,7 +204,7 @@ module Expr =
         "typ" Type.print typ
   end
 
-module rec Parameter :
+and Parameter :
   sig
     type kind = Val
 

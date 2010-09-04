@@ -93,6 +93,11 @@ let rec bind_expr env tve expr =
       in
       env, tve, Expr.make ~sr typ (Expr.Name name)
 
+  | Lambda lambda ->
+      let env, tve, lambda = bind_lambda env tve lambda in
+
+      env, tve, Expr.lambda ~sr lambda
+
   | Sum [lhs; rhs] ->
       let env, tve, typ, lhs, rhs = bind_binary_expr env tve lhs rhs in
       env, tve, Expr.make ~sr typ (Expr.Sum (lhs, rhs))
@@ -104,7 +109,7 @@ let rec bind_expr env tve expr =
   | _ -> error sr "Cannot bind expression:@ %a" Ast_expr.print expr
 
 
-let bind_parameter env tve parameter =
+and bind_parameter env tve parameter =
   let open Ast_parameter in
 
   let kind =
@@ -129,7 +134,7 @@ let bind_parameter env tve parameter =
   env, tve, parameter
 
 
-let bind_param env tve param =
+and bind_param env tve param =
   let open Ast_param in
 
   let env, tve, parameters =
@@ -143,7 +148,7 @@ let bind_param env tve param =
   env, tve, Param.make (List.rev parameters)
 
 
-let bind_params env tve params =
+and bind_params env tve params =
   let env, tve, params =
     List.fold_left begin fun (env, tve, params) param ->
       let env, tve, param = bind_param env tve param in
@@ -155,7 +160,7 @@ let bind_params env tve params =
   env, tve, List.rev params
 
 
-let rec bind_lambda env tve { Ast_lambda.kind; params; return_typ; stmts } =
+and bind_lambda env tve { Ast_lambda.kind; params; return_typ; stmts } =
   let kind =
     match kind with
     | Ast_lambda.Function -> Lambda.Function
