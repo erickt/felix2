@@ -26,7 +26,7 @@ let add (n, tve) var typ = n, IntMap.add var typ tve
 let rec substitute tve typ =
   let open Type in
 
-  match node typ with
+  match typ.node with
   | Variable var ->
       (* Look up the variable in the type variable environment. If we find it,
        * recursively substitute types into that type variable. Otherwise, do
@@ -38,7 +38,7 @@ let rec substitute tve typ =
   | Arrow (lhs, rhs) ->
       let lhs = substitute tve lhs in
       let rhs = substitute tve rhs in
-      arrow ~sr:(sr typ) lhs rhs
+      arrow ~sr:typ.sr lhs rhs
 
   | _ -> typ
 

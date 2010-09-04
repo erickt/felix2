@@ -6,8 +6,40 @@ exception Type_error of Flx_srcref.t * string
 
 type name = Flx_ast.name
 
-module Type =
-  struct
+module Type : sig
+    type t = private { sr: Flx_srcref.t; node: node }
+
+    and node =
+      | Variable of int
+      (*
+      | Integer of int_kind
+      *)
+      | Integer
+      (*
+      | String
+      | Name of string
+      | Tuple of t list
+      *)
+      | Arrow of t * t
+
+    (** Make a type. *)
+    val make: ?sr:Flx_srcref.t -> node -> t
+
+    (** Return a type variable. *)
+    val variable: ?sr:Flx_srcref.t -> int -> t
+
+    (** Return the int type. *)
+    val integer: ?sr:Flx_srcref.t -> unit -> t
+
+    (** Return the arrow type. *)
+    val arrow: ?sr:Flx_srcref.t -> t -> t -> t
+
+    (** Print a type. *)
+    val print: Format.formatter -> t -> unit
+
+    (** Test the equality of two types. *)
+    val equals: t -> t -> bool
+  end = struct
     (*
     type int_kind =
       | Int
@@ -31,12 +63,6 @@ module Type =
 
     (** Make a type. *)
     let make ?(sr=Flx_srcref.dummy_sr) node = { sr; node }
-
-    (** Return the type's node. *)
-    let node { node } = node
-
-    (** Return the type's source reference. *)
-    let sr { sr } = sr
 
     (** Return a type variable. *)
     let variable ?sr var = make ?sr (Variable var)
@@ -86,9 +112,10 @@ module Type =
       *)
       print_node ppf node
 
+    (** Test the equality of two types. *)
     let equals typ1 typ2 =
       let rec aux typ1 typ2 =
-        match node typ1, node typ2 with
+        match typ1.node, typ2.node with
         | Variable var1, Variable var2 -> var1 = var2
         | Integer, Integer -> true
         (*

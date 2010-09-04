@@ -17,15 +17,15 @@ let error ?(sr=Flx_srcref.dummy_sr) format =
 
 
 (** Unify two types together. *)
-let rec unify tve typ1 typ2 =
-  unify' tve (tvchase tve typ1) (tvchase tve typ2)
+let rec unify ~sr tve typ1 typ2 =
+  unify' ~sr tve (tvchase tve typ1) (tvchase tve typ2)
 
 (** Chase through a substitution 'shallowly': stop at the last equivalent type
  * variable. *)
 and tvchase tve typ =
   let open Type in
 
-  match node typ with
+  match typ.node with
   | Variable v ->
       begin match Flx_tve.find tve v with
       | Some typ -> tvchase tve typ
@@ -34,25 +34,29 @@ and tvchase tve typ =
   | _ -> typ
 
 (** If either typ1 or typ2 are type variables, they must be unbound. *)
-and unify' tve typ1 typ2 =
+and unify' ~sr tve typ1 typ2 =
   let open Type in
 
-  match node typ1, node typ2 with
+  match typ1.node, typ2.node with
   | Integer, Integer -> tve
   (*
   | Integer kind1, Integer kind2 when kind1 = kind2 -> tve
   | String, String -> tve
   *)
   | Arrow (lhs1,rhs1), Arrow (lhs2,rhs2) ->
-      unify (unify tve rhs1 rhs2) lhs1 lhs2
-  | Variable var1, _ -> unify_free_variable tve var1 typ2
-  | _, Variable var2 -> unify_free_variable tve var2 typ1
-  | _, _ -> error ~sr:(sr typ2)  "%a and %a" print typ1 print typ2
+      unify ~sr (unify ~sr tve rhs1 rhs2) lhs1 lhs2
+  | Variable var1, _ -> unify_free_variable ~sr tve var1 typ2
+  | _, Variable var2 -> unify_free_variable ~sr tve var2 typ1
+  | _, _ ->
+      error ~sr
+        "This expression has type@ %a but expected type@ %a instead"
+        print typ1
+        print typ2
 
-and unify_free_variable tve var1 typ2 =
+and unify_free_variable ~sr tve var1 typ2 =
   let open Type in
 
-  match node typ2 with
+  match typ2.node with
   | Variable var2 ->
       if var1 = var2 then tve else
 
@@ -61,7 +65,7 @@ and unify_free_variable tve var1 typ2 =
 
   | _ ->
       if occurs tve var1 typ2 then
-        error ~sr:(sr typ2) "occurs check: %a in %a"
+        error ~sr "occurs check: %a in %a"
           print (variable var1)
           print (Flx_tve.substitute tve typ2)
       else
@@ -70,7 +74,7 @@ and unify_free_variable tve var1 typ2 =
 and occurs tve var1 typ2 =
   let open Type in
 
-  match node typ2 with
+  match typ2.node with
   (*
   | Integer _
   | String -> false
@@ -160,7 +164,8 @@ let rec bind_expr env tve expr =
       let int_typ = Type.integer Type.Int in
       *)
 
-      let tve = unify (unify tve typ_lhs int_typ) typ_rhs int_typ in
+      let tve = unify ~sr:(Expr.sr lhs) tve typ_lhs int_typ in
+      let tve = unify ~sr:(Expr.sr rhs) tve typ_rhs int_typ in
 
       (*
       (* Make sure all the types are the same. *)
@@ -189,7 +194,7 @@ let rec bind_expr env tve expr =
       env, tve, Expr.make ~sr typ (Expr.Name name)
 
   | Lambda lambda ->
-      let env, tve, lambda = bind_lambda env tve lambda in
+      let env, tve, lambda = bind_lambda ~sr env tve lambda in
 
       env, tve, Expr.lambda ~sr lambda
 
@@ -258,7 +263,7 @@ and bind_params env tve params =
   env, tve, List.rev params
 
 
-and bind_lambda env tve { Ast_lambda.kind; params; return_typ; stmts } =
+and bind_lambda ~sr env tve { Ast_lambda.kind; params; return_typ; stmts } =
   let kind =
     match kind with
     | Ast_lambda.Function -> Lambda.Function
@@ -274,7 +279,7 @@ and bind_lambda env tve { Ast_lambda.kind; params; return_typ; stmts } =
        * lambda's return type. *)
       let tve =
         match Stmt.node stmt with
-        | Stmt.Return expr -> unify tve (Expr.typ expr) return_typ
+        | Stmt.Return expr -> unify ~sr tve (Expr.typ expr) return_typ
         | _ -> tve
       in
 
@@ -331,7 +336,7 @@ and bind_stmt env tve stmt =
       end
 
   | Curry (name,lambda) ->
-      let env, tve, lambda = bind_lambda env tve lambda in
+      let env, tve, lambda = bind_lambda ~sr env tve lambda in
       env, tve, Stmt.curry ~sr name lambda
 
   | Return expr ->
