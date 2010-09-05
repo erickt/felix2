@@ -131,11 +131,14 @@ let rec to_expr sexp =
       make ~sr:Flx_srcref.dummy_sr ~node:(Literal (Literal.string s))
 
   (* () *)
-  | List [] ->
-      make ~sr:Flx_srcref.dummy_sr ~node:(Tuple [])
+  | List [] -> unit ~sr:Flx_srcref.dummy_sr
 
   (* (<expr>) *)
   | List [expr] -> to_expr expr
+
+  (* (<expr> [, <expr2> ...]) *)
+  | List [Id "ast_tuple"; sr; List exprs] ->
+      tuple ~sr:(to_sr sr) (List.map to_expr exprs)
 
   (* <literal> *)
   | List [Id "ast_literal"; sr; literal] ->

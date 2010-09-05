@@ -106,6 +106,9 @@ module rec Expr :
     (** Return the expression's source reference. *)
     val sr: t -> Flx_srcref.t
 
+    (** Return a tuple expression. *)
+    val tuple: sr:Flx_srcref.t -> t list -> t
+
     (** Return the unit expression. *)
     val unit: sr:Flx_srcref.t -> t
 
@@ -131,8 +134,11 @@ module rec Expr :
     (** return the expression's source reference. *)
     let sr { sr } = sr
 
+    (** Return a tuple expression. *)
+    let tuple ~sr exprs = make ~sr ~node:(Tuple exprs)
+
     (** Return the unit expression. *)
-    let unit ~sr = make ~sr ~node:(Tuple [])
+    let unit ~sr = tuple ~sr []
 
     let rec print_node ppf = function
       | Literal lit -> print_variant1 ppf "Literal" Literal.print lit

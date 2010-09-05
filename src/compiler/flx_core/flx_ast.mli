@@ -82,6 +82,9 @@ module rec Expr :
     (** Return the expression's source reference. *)
     val sr: t -> Flx_srcref.t
 
+    (** Return a tuple expression. *)
+    val tuple: sr:Flx_srcref.t -> t list -> t
+
     (** Return the unit expression. *)
     val unit: sr:Flx_srcref.t -> t
 
