@@ -28,7 +28,10 @@ val join: t -> t -> t
 val dummy_sr: t
 
 (** Convert the source reference to a string. *)
-val to_string : t -> string
+val to_string: t -> string
 
 (** Print the source reference to a pretty printer. *)
-val print : Format.formatter -> t -> unit
+val print: Format.formatter -> t -> unit
+
+(** Print out an error location. *)
+val print_error: Batteries.IO.input -> Format.formatter -> t -> unit

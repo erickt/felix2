@@ -11,9 +11,19 @@ module Ast_param = Flx_ast.Param
 module Ast_lambda = Flx_ast.Lambda
 module Ast_stmt = Flx_ast.Stmt
 
+type error =
+  | Unification_error of Type.t * Type.t
+
+exception Error of Flx_srcref.t * error
+
 (** Error out *)
 let error ?(sr=Flx_srcref.dummy_sr) format =
   ksprintf (fun s -> raise (Type_error (sr, s))) format
+
+
+(** Raise a unification error. *)
+let unification_error ?(sr=Flx_srcref.dummy_sr) typ1 typ2 =
+  raise (Error (sr, Unification_error (typ1, typ2)))
 
 
 (** Unify two types together. *)
@@ -37,13 +47,6 @@ and tvchase tve typ =
 and unify' ~sr tve typ1 typ2 =
   let open Type in
 
-  let error typ1 typ2 =
-    error ~sr
-      "This expression has type@ %a but expected type@ %a instead"
-      print typ1
-      print typ2
-  in
-
   match typ1.node, typ2.node with
   | Integer, Integer -> tve
   (*
@@ -53,14 +56,14 @@ and unify' ~sr tve typ1 typ2 =
   | Tuple ts1, Tuple ts2 ->
       begin try List.fold_left2 (unify ~sr) tve ts1 ts2
       with Type_error (_,_) | Invalid_argument _ ->
-        error typ1 typ2
+        unification_error typ1 typ2
       end
   | Arrow (lhs1,rhs1), Arrow (lhs2,rhs2) ->
       unify ~sr (unify ~sr tve rhs1 rhs2) lhs1 lhs2
   | Variable var1, _ -> unify_free_variable ~sr tve var1 typ2
   | _, Variable var2 -> unify_free_variable ~sr tve var2 typ1
   | _, _ ->
-      error typ1 typ2
+      unification_error typ1 typ2
 
 and unify_free_variable ~sr tve var1 typ2 =
   let open Type in
@@ -386,3 +389,9 @@ let bind_stmt env tve stmt =
   let typ' = Flx_tve.substitute tve (Stmt.typ stmt) in
 
   env, tve, make ~sr:(sr stmt) typ' (node stmt)
+
+let print_error ppf = function
+  | Unification_error (typ1, typ2) ->
+      fprintf ppf "@[%s@;<1 2>%a@ %s@;<1 2>%a@]"
+        "This expression has type" Type.print typ1
+        "but was expected of type" Type.print typ2

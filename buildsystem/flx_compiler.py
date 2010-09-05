@@ -17,7 +17,8 @@ def build_flx_core(phase):
     return phase.ocaml.build_lib(path / 'flx_core',
         srcs=Path.glob(path / '*.ml{,i}'),
         libs=[build_flx_misc(phase)],
-        external_libs=['nums'])
+        external_libs=['nums'],
+        packages=['batteries'])
 
 def build_flx_parse(phase):
     path = Path('src/compiler/flx_parse')

@@ -59,15 +59,11 @@ let parse_channel ~name ~print parser_state handle_stmt channel args =
     handle_stmt ~print:true sr stmt
   in
 
-  let print_error name sr error =
-    printf "%s@." (Flx_srcref.to_string sr);
-    printf "%s@." (Flx_io.get_lines
-      (IO.input_string (Buffer.contents buffer))
-      sr.Flx_srcref.start_line
-      sr.Flx_srcref.start_col
-      sr.Flx_srcref.end_line
-      sr.Flx_srcref.end_col);
-    printf "%s: %s@." name error
+  (* Get a file-like object from a buffer. *)
+
+  let print_error_sr ppf sr =
+    let file = IO.input_string (Buffer.contents buffer) in
+    Flx_srcref.print_error file ppf sr
   in
 
   (* Loop over each statement until we exit. *)
@@ -82,6 +78,7 @@ let parse_channel ~name ~print parser_state handle_stmt channel args =
 
         Some parser_state
       with
+      (*
       | Failure s ->
           if Printexc.backtrace_status () then begin
             eprintf "%s@." (Printexc.get_backtrace ());
@@ -89,6 +86,7 @@ let parse_channel ~name ~print parser_state handle_stmt channel args =
 
           printf "Fatal error: %s@." s;
           None
+          *)
 
       | Flx_exceptions.Syntax_error (sr, e) ->
           (* Reset our state. *)
@@ -98,7 +96,7 @@ let parse_channel ~name ~print parser_state handle_stmt channel args =
             eprintf "%s@." (Printexc.get_backtrace ());
           end;
 
-          print_error "Syntax error" sr e;
+          eprintf "%a@.Syntax error: %s@." print_error_sr sr e;
 
           (* Ignore the rest of the line. *)
           Flx_parse.flush_input lexbuf;
@@ -128,7 +126,24 @@ let parse_channel ~name ~print parser_state handle_stmt channel args =
             eprintf "%s@." (Printexc.get_backtrace ());
           end;
 
-          print_error "Type error" sr e;
+          eprintf "%a@.Type error: %s@." print_error_sr sr e;
+
+          (* Ignore the rest of the line. *)
+          Flx_parse.flush_input lexbuf;
+
+          Some !old_parser_state
+
+      | Flx_bind.Error (sr, e) ->
+          (* Reset our state. *)
+          first_line := true;
+
+          if Printexc.backtrace_status () then begin
+            eprintf "%s@." (Printexc.get_backtrace ());
+          end;
+
+          eprintf "%a@.Type error: %a@."
+            print_error_sr sr
+            Flx_bind.print_error e;
 
           (* Ignore the rest of the line. *)
           Flx_parse.flush_input lexbuf;

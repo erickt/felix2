@@ -64,3 +64,13 @@ let print ppf { filename; start_line; start_col; end_line; end_col } =
     "start_col" Format.pp_print_int start_col
     "end_line" Format.pp_print_int end_line
     "end_col" Format.pp_print_int end_col
+
+(** Print out an error location. *)
+let print_error file ppf sr =
+  let lines = Flx_io.get_lines file
+    sr.start_line
+    sr.start_col
+    sr.end_line
+    sr.end_col
+  in
+  fprintf ppf "%s.@.%s@." (to_string sr) lines
