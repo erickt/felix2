@@ -35,6 +35,9 @@ let rec substitute tve typ =
       | Some typ -> substitute tve typ
       | None -> typ
       end
+
+  | Tuple typs -> tuple ~sr:typ.sr (List.map (substitute tve) typs)
+
   | Arrow (lhs, rhs) ->
       let lhs = substitute tve lhs in
       let rhs = substitute tve rhs in

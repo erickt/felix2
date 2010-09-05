@@ -18,8 +18,8 @@ module Type : sig
       (*
       | String
       | Name of string
-      | Tuple of t list
       *)
+      | Tuple of t list
       | Arrow of t * t
 
     (** Make a type. *)
@@ -33,6 +33,12 @@ module Type : sig
 
     (** Return the arrow type. *)
     val arrow: ?sr:Flx_srcref.t -> t -> t -> t
+
+    (** Return a tuple type. *)
+    val tuple: ?sr:Flx_srcref.t -> t list -> t
+
+    (** Return the unit type. *)
+    val unit: ?sr:Flx_srcref.t -> unit -> t
 
     (** Print a type. *)
     val print: Format.formatter -> t -> unit
@@ -57,8 +63,8 @@ module Type : sig
       (*
       | String
       | Name of string
-      | Tuple of t list
       *)
+      | Tuple of t list
       | Arrow of t * t
 
     (** Make a type. *)
@@ -73,28 +79,26 @@ module Type : sig
     (*
     (** Return the string type. *)
     let string ?sr () = make ?sr String
+    *)
 
     (** Return a tuple type. *)
     let tuple ?sr ts = make ?sr (Tuple ts)
 
     (** Return the unit type. *)
     let unit ?sr () = tuple ?sr []
-    *)
 
     (** Return the arrow type. *)
     let arrow ?sr lhs rhs = make ?sr (Arrow (lhs, rhs))
 
     let rec print_node ppf = function
+      | Variable var -> print_variant1 ppf "Variable" pp_print_int var
+      | Integer -> print_variant0 ppf "Integer"
       (*
-      | Variable n -> print_variant1 ppf "Variable" pp_print_int n
       | Integer k -> print_variant1 ppf "Integer" print_int_kind k
       | String -> print_variant0 ppf "String"
       | Name s -> print_variant1 ppf "Name" print_string s
-      | Tuple ts -> print_variant1 ppf "Tuple" (Flx_list.print print) ts
-      | Arrow (lhs, rhs) -> print_variant2 ppf "Arrow" print lhs print rhs
       *)
-      | Variable var -> print_variant1 ppf "Variable" pp_print_int var
-      | Integer -> print_variant0 ppf "Integer"
+      | Tuple ts -> print_variant1 ppf "Tuple" (Flx_list.print print) ts
       | Arrow (lhs, rhs) -> print_variant2 ppf "Arrow" print lhs print rhs
 
     (*
@@ -122,8 +126,8 @@ module Type : sig
         | Integer kind1, Integer kind2 -> kind1 = kind2
         | String, String -> true
         | Name name1, Name name2 -> name1 = name2
-        | Tuple ts1, Tuple ts2 -> List.for_all2 aux ts1 ts2
         *)
+        | Tuple ts1, Tuple ts2 -> List.for_all2 aux ts1 ts2
         | Arrow (lhs1, rhs1), Arrow (lhs2, rhs2) ->
             aux lhs1 lhs2 && aux rhs1 rhs2
         | _, _ -> false
@@ -215,9 +219,7 @@ module rec Expr :
     val literal: ?sr:Flx_srcref.t -> Literal.t -> t
 
     (** Return a tuple expression. *)
-    (*
     val tuple: ?sr:Flx_srcref.t -> Expr.t list -> t
-    *)
 
     (** Return a lambda expression. *)
     val lambda: ?sr:Flx_srcref.t -> Lambda.t -> t
@@ -251,9 +253,7 @@ module rec Expr :
     let literal ?sr literal = make ?sr (Literal.typ literal) (Literal literal)
 
     (** Return a tuple expression. *)
-(*
     let tuple ?sr es = make ?sr (Type.tuple (List.map typ es)) (Tuple es)
-*)
 
     (** Return a lambda expression. *)
     let lambda ?sr lambda = make ?sr (Lambda.typ lambda) (Lambda lambda)
@@ -346,10 +346,7 @@ and Param :
     let typ { parameters } =
       match parameters with
       | [parameter] -> parameter.Parameter.typ
-      | _ -> failwith "cannot handle"
-      (*
-      Type.tuple (List.map (fun p -> p.Parameter.typ) parameters)
-      *)
+      | _ -> Type.tuple (List.map (fun p -> p.Parameter.typ) parameters)
 
     (** Print a param. *)
     let print ppf { parameters; precondition } =
@@ -474,10 +471,7 @@ and Stmt :
     let value ?sr name expr = make ?sr (Expr.typ expr) (Value (name, expr))
 
     (** Return a no-op statement. *)
-    (*
     let noop ?sr s = make ?sr (Type.unit ()) (Noop s)
-    *)
-    let noop ?sr s = make ?sr (Type.integer ()) (Noop s)
 
     (** Return a curry-able function declaration. *)
     let curry ?sr name lambda =

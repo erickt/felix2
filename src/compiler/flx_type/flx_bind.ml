@@ -37,21 +37,30 @@ and tvchase tve typ =
 and unify' ~sr tve typ1 typ2 =
   let open Type in
 
+  let error typ1 typ2 =
+    error ~sr
+      "This expression has type@ %a but expected type@ %a instead"
+      print typ1
+      print typ2
+  in
+
   match typ1.node, typ2.node with
   | Integer, Integer -> tve
   (*
   | Integer kind1, Integer kind2 when kind1 = kind2 -> tve
   | String, String -> tve
   *)
+  | Tuple ts1, Tuple ts2 ->
+      begin try List.fold_left2 (unify ~sr) tve ts1 ts2
+      with Type_error (_,_) | Invalid_argument _ ->
+        error typ1 typ2
+      end
   | Arrow (lhs1,rhs1), Arrow (lhs2,rhs2) ->
       unify ~sr (unify ~sr tve rhs1 rhs2) lhs1 lhs2
   | Variable var1, _ -> unify_free_variable ~sr tve var1 typ2
   | _, Variable var2 -> unify_free_variable ~sr tve var2 typ1
   | _, _ ->
-      error ~sr
-        "This expression has type@ %a but expected type@ %a instead"
-        print typ1
-        print typ2
+      error typ1 typ2
 
 and unify_free_variable ~sr tve var1 typ2 =
   let open Type in
@@ -80,6 +89,7 @@ and occurs tve var1 typ2 =
   | String -> false
   *)
   | Integer -> false
+  | Tuple ts -> List.exists (occurs tve var1) ts
   | Arrow (lhs, rhs) -> occurs tve var1 lhs || occurs tve var1 rhs
   | Variable var2 ->
       begin match Flx_tve.find tve var2 with
@@ -182,6 +192,19 @@ let rec bind_expr env tve expr =
   let sr = sr expr in
   match node expr with
   | Literal literal -> env, tve, Expr.literal ~sr (bind_literal literal)
+
+  | Tuple exprs ->
+      let tve, exprs =
+        List.fold_left begin fun (tve, exprs) expr ->
+          let env, tve, expr = bind_expr env tve expr in
+          tve, expr :: exprs
+        end
+        (tve, [])
+        exprs
+      in
+
+      (* The exprs are reversed. *)
+      env, tve, Expr.tuple ~sr (List.rev exprs)
 
   | Name name ->
       (* Look up the variable name in the environment. *)
