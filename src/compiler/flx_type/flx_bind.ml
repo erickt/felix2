@@ -12,7 +12,7 @@ module Ast_lambda = Flx_ast.Lambda
 module Ast_stmt = Flx_ast.Stmt
 
 type error =
-  | Unification_error of Type.t * Type.t
+  | Unification_failed of Type.t * Type.t
 
 exception Error of Flx_srcref.t * error
 
@@ -20,89 +20,11 @@ exception Error of Flx_srcref.t * error
 let error ?(sr=Flx_srcref.dummy_sr) format =
   ksprintf (fun s -> raise (Type_error (sr, s))) format
 
-
-(** Raise a unification error. *)
-let unification_error ?(sr=Flx_srcref.dummy_sr) typ1 typ2 =
-  raise (Error (sr, Unification_error (typ1, typ2)))
-
-
-(** Unify two types together. *)
-let rec unify ~sr tve typ1 typ2 =
-  unify' ~sr tve (tvchase tve typ1) (tvchase tve typ2)
-
-(** Chase through a substitution 'shallowly': stop at the last equivalent type
- * variable. *)
-and tvchase tve typ =
-  let open Type in
-
-  match typ.node with
-  | Variable v ->
-      begin match Flx_tve.find tve v with
-      | Some typ -> tvchase tve typ
-      | None -> typ
-      end
-  | _ -> typ
-
-(** If either typ1 or typ2 are type variables, they must be unbound. *)
-and unify' ~sr tve typ1 typ2 =
-  let open Type in
-
-  match typ1.node, typ2.node with
-  | Integer, Integer -> tve
-  (*
-  | Integer kind1, Integer kind2 when kind1 = kind2 -> tve
-  | String, String -> tve
-  *)
-  | Tuple ts1, Tuple ts2 ->
-      begin try List.fold_left2 (unify ~sr) tve ts1 ts2
-      with Type_error (_,_) | Invalid_argument _ ->
-        unification_error typ1 typ2
-      end
-  | Arrow (lhs1,rhs1), Arrow (lhs2,rhs2) ->
-      unify ~sr (unify ~sr tve rhs1 rhs2) lhs1 lhs2
-  | Variable var1, _ -> unify_free_variable ~sr tve var1 typ2
-  | _, Variable var2 -> unify_free_variable ~sr tve var2 typ1
-  | _, _ ->
-      unification_error typ1 typ2
-
-and unify_free_variable ~sr tve var1 typ2 =
-  let open Type in
-
-  match typ2.node with
-  | Variable var2 ->
-      if var1 = var2 then tve else
-
-      (* Record a new constraint. *)
-      Flx_tve.add tve var1 typ2
-
-  | _ ->
-      if occurs tve var1 typ2 then
-        error ~sr "occurs check: %a in %a"
-          print (variable var1)
-          print (Flx_tve.substitute tve typ2)
-      else
-        Flx_tve.add tve var1 typ2
-
-and occurs tve var1 typ2 =
-  let open Type in
-
-  match typ2.node with
-  (*
-  | Integer _
-  | String -> false
-  *)
-  | Integer -> false
-  | Tuple ts -> List.exists (occurs tve var1) ts
-  | Arrow (lhs, rhs) -> occurs tve var1 lhs || occurs tve var1 rhs
-  | Variable var2 ->
-      begin match Flx_tve.find tve var2 with
-      | None -> var1 = var2
-      | Some typ2 -> occurs tve var1 typ2
-      end
-  (*
-  | _ -> error ~sr:(sr typ2) "occurs does not support %a yet" print typ2
-  *)
-
+(** Wrap unification to re-raise with our types. *)
+let unify ~sr tve typ1 typ2 =
+  try Flx_unify.unify ~sr tve typ1 typ2
+  with Flx_unify.Unification_failed -> 
+    raise (Error (sr, Unification_failed (typ1, typ2)))
 
   (*
 let bind_int_kind = function
@@ -374,6 +296,13 @@ and bind_stmts env tve stmts =
   let env, tve, stmts =
     List.fold_left begin fun (env, tve, stmts) stmt ->
       let env, tve, stmt = bind_stmt env tve stmt in
+
+      (*
+      (* Substitute any type variables. *)
+      let typ = Flx_tve.substitute tve (Stmt.typ stmt) in
+      let stmt = Stmt.make ~sr:(Stmt.sr stmt) typ (Stmt.node stmt) in
+      *)
+
       env, tve, stmt :: stmts
     end
     (env, tve, [])
@@ -391,7 +320,7 @@ let bind_stmt env tve stmt =
   env, tve, make ~sr:(sr stmt) typ' (node stmt)
 
 let print_error ppf = function
-  | Unification_error (typ1, typ2) ->
+  | Unification_failed (typ1, typ2) ->
       fprintf ppf "@[%s@;<1 2>%a@ %s@;<1 2>%a@]"
         "This expression has type" Type.print typ1
         "but was expected of type" Type.print typ2
