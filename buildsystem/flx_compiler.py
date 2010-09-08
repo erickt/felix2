@@ -38,9 +38,9 @@ def build_flx_parse(phase):
             build_flx_core(phase)],
         packages=['batteries'])
 
-def build_flx_type(phase):
-    path = Path('src', 'compiler', 'flx_type')
-    return phase.ocaml.build_lib(path / 'flx_sexp',
+def build_flx_bind(phase):
+    path = Path('src', 'compiler', 'flx_bind')
+    return phase.ocaml.build_lib(path / 'flx_bind',
         srcs=Path.glob(path / '*.ml{,i}'),
         libs=[
             build_flx_misc(phase),
@@ -66,7 +66,7 @@ def build_flx_drivers(phase):
                 build_flx_misc(phase),
                 build_flx_core(phase),
                 build_flx_parse(phase),
-                build_flx_type(phase)],
+                build_flx_bind(phase)],
             flags=['-thread'],
             external_libs=['batteries', 'threads'],
             packages=['batteries']) }

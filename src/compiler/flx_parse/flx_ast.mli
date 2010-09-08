@@ -1,4 +1,4 @@
-type name = string
+type name = Flx_type.name
 
 module Type :
   sig

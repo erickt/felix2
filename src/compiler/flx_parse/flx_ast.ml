@@ -1,7 +1,7 @@
 open Format
 open Flx_format
 
-type name = string
+type name = Flx_type.name
 
 module Type =
   struct
