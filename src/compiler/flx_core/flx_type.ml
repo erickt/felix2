@@ -6,7 +6,8 @@ exception Type_error of Flx_srcref.t * string
 
 type name = string
 
-module Type : sig
+module Type :
+  sig
     type t = private { sr: Flx_srcref.t; node: node }
 
     and node =
@@ -221,6 +222,9 @@ module rec Expr :
     (** Return a tuple expression. *)
     val tuple: ?sr:Flx_srcref.t -> Expr.t list -> t
 
+    (** Return the unit expression. *)
+    val unit: ?sr:Flx_srcref.t -> unit -> t
+
     (** Return a lambda expression. *)
     val lambda: ?sr:Flx_srcref.t -> Lambda.t -> t
 
@@ -254,6 +258,9 @@ module rec Expr :
 
     (** Return a tuple expression. *)
     let tuple ?sr es = make ?sr (Type.tuple (List.map typ es)) (Tuple es)
+
+    (** Return the unit expression. *)
+    let unit ?sr () = tuple ?sr []
 
     (** Return a lambda expression. *)
     let lambda ?sr lambda = make ?sr (Lambda.typ lambda) (Lambda lambda)
@@ -373,7 +380,7 @@ and Lambda :
     val typ : t -> Type.t
 
     (** Print a lambda. *)
-    val print : formatter -> t -> unit
+    val print : Format.formatter -> t -> unit
   end = struct
     type kind =
       | Function
@@ -445,8 +452,7 @@ and Stmt :
 
     (** Print a statement. *)
     val print: Format.formatter -> t -> unit
-  end =
-  struct
+  end = struct
     type t = { sr: Flx_srcref.t; typ: Type.t; node: node; }
 
     and node =
