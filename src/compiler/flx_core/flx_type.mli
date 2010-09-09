@@ -4,11 +4,17 @@ type name = string
 
 module Type :
   sig
+    type int_kind =
+      | Int
+      | Uint
+
     type t = private { sr: Flx_srcref.t; node: node }
 
     and node =
       | Variable of int
-      | Integer
+      | Integer of int_kind
+      | String
+      | Name of string
       | Tuple of t list
       | Arrow of t * t
 
@@ -19,7 +25,13 @@ module Type :
     val variable: ?sr:Flx_srcref.t -> int -> t
 
     (** Return the int type. *)
-    val integer: ?sr:Flx_srcref.t -> unit -> t
+    val integer: ?sr:Flx_srcref.t -> int_kind -> t
+
+    (** Return the string type. *)
+    val string: ?sr:Flx_srcref.t -> unit -> t
+
+    (** Return a type alias. *)
+    val name: ?sr:Flx_srcref.t -> string -> t
 
     (** Return the arrow type. *)
     val arrow: ?sr:Flx_srcref.t -> t -> t -> t
@@ -39,10 +51,13 @@ module Type :
 
 module Literal :
   sig
+    type int_kind = Type.int_kind
+
     type t
 
     type node =
-      | Integer of Big_int.big_int
+      | Integer of int_kind * Big_int.big_int
+      | String of string
 
     (** Make a literal. *)
     val make: node -> t
@@ -51,7 +66,10 @@ module Literal :
     val node: t -> node
 
     (** Make a literal integer. *)
-    val integer: Big_int.big_int -> t
+    val integer: int_kind -> Big_int.big_int -> t
+
+    (** Make a literal string. *)
+    val string: string -> t
 
     (** Print a literal. *)
     val print: Format.formatter -> t -> unit

@@ -8,18 +8,17 @@ type name = string
 
 module Type :
   sig
+    type int_kind =
+      | Int
+      | Uint
+
     type t = private { sr: Flx_srcref.t; node: node }
 
     and node =
       | Variable of int
-      (*
       | Integer of int_kind
-      *)
-      | Integer
-      (*
       | String
       | Name of string
-      *)
       | Tuple of t list
       | Arrow of t * t
 
@@ -30,7 +29,13 @@ module Type :
     val variable: ?sr:Flx_srcref.t -> int -> t
 
     (** Return the int type. *)
-    val integer: ?sr:Flx_srcref.t -> unit -> t
+    val integer: ?sr:Flx_srcref.t -> int_kind -> t
+
+    (** Return the string type. *)
+    val string: ?sr:Flx_srcref.t -> unit -> t
+
+    (** Return an abstract named type. *)
+    val name: ?sr:Flx_srcref.t -> string -> t
 
     (** Return the arrow type. *)
     val arrow: ?sr:Flx_srcref.t -> t -> t -> t
@@ -44,27 +49,23 @@ module Type :
     (** Print a type. *)
     val print: Format.formatter -> t -> unit
 
+    (** Print an integer kind. *)
+    val print_int_kind: Format.formatter -> int_kind -> unit
+
     (** Test the equality of two types. *)
     val equals: t -> t -> bool
   end = struct
-    (*
     type int_kind =
       | Int
       | Uint
-      *)
 
     type t = { sr: Flx_srcref.t; node: node }
 
     and node =
       | Variable of int
-      (*
       | Integer of int_kind
-      *)
-      | Integer
-      (*
       | String
       | Name of string
-      *)
       | Tuple of t list
       | Arrow of t * t
 
@@ -75,12 +76,13 @@ module Type :
     let variable ?sr var = make ?sr (Variable var)
 
     (** Return the int type. *)
-    let integer ?sr () = make ?sr Integer
+    let integer ?sr kind = make ?sr (Integer kind)
 
-    (*
     (** Return the string type. *)
     let string ?sr () = make ?sr String
-    *)
+
+    (** Return a type alias. *)
+    let name ?sr s = make ?sr (Name s)
 
     (** Return a tuple type. *)
     let tuple ?sr ts = make ?sr (Tuple ts)
@@ -93,20 +95,16 @@ module Type :
 
     let rec print_node ppf = function
       | Variable var -> print_variant1 ppf "Variable" pp_print_int var
-      | Integer -> print_variant0 ppf "Integer"
-      (*
       | Integer k -> print_variant1 ppf "Integer" print_int_kind k
       | String -> print_variant0 ppf "String"
       | Name s -> print_variant1 ppf "Name" print_string s
-      *)
       | Tuple ts -> print_variant1 ppf "Tuple" (Flx_list.print print) ts
       | Arrow (lhs, rhs) -> print_variant2 ppf "Arrow" print lhs print rhs
 
-    (*
+    (** Print an integer kind. *)
     and print_int_kind ppf = function
       | Int -> print_variant0 ppf "Int"
       | Uint -> print_variant0 ppf "Uint"
-    *)
 
     (** Print a type. *)
     and print ppf { sr; node } =
@@ -122,12 +120,9 @@ module Type :
       let rec aux typ1 typ2 =
         match typ1.node, typ2.node with
         | Variable var1, Variable var2 -> var1 = var2
-        | Integer, Integer -> true
-        (*
         | Integer kind1, Integer kind2 -> kind1 = kind2
         | String, String -> true
         | Name name1, Name name2 -> name1 = name2
-        *)
         | Tuple ts1, Tuple ts2 -> List.for_all2 aux ts1 ts2
         | Arrow (lhs1, rhs1), Arrow (lhs2, rhs2) ->
             aux lhs1 lhs2 && aux rhs1 rhs2
@@ -138,18 +133,13 @@ module Type :
 
 module Literal =
   struct
-    (*
     type int_kind = Type.int_kind
-    *)
 
     type t = node
 
     and node =
-      (*
       | Integer of Type.int_kind * Big_int.big_int
       | String of string
-      *)
-      | Integer of Big_int.big_int
 
     (** Make a literal. *)
     let make node = node
@@ -159,29 +149,17 @@ module Literal =
 
     (** Return the literal's type. *)
     let typ = function
-      (*
       | Integer (kind, _) -> Type.integer kind
-      *)
-      | Integer _ -> Type.integer ()
-      (*
       | String _ -> Type.string ()
-      *)
 
-    let integer num = make (Integer num)
     (** Make a literal integer. *)
-(*
     let integer kind num = make (Integer (kind, num))
 
     (** Make a literal string. *)
     let string s = make (String s)
-*)
 
     (** Print a literal. *)
     let print ppf = function
-      | Integer i ->
-          print_variant1 ppf "Integer"
-            print_big_int i
-            (*
       | Integer (k,i) ->
           print_variant2 ppf "Integer"
             Type.print_int_kind k
@@ -189,7 +167,6 @@ module Literal =
       | String s ->
           print_variant1 ppf "String"
             print_string s
-            *)
   end
 
 module rec Expr :

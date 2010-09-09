@@ -24,11 +24,9 @@ and unify' ~sr tve typ1 typ2 =
   let open Type in
 
   match typ1.node, typ2.node with
-  | Integer, Integer -> tve
-  (*
   | Integer kind1, Integer kind2 when kind1 = kind2 -> tve
   | String, String -> tve
-  *)
+  | Name s1, Name s2 when s1 = s2 -> tve
   | Tuple ts1, Tuple ts2 ->
       begin try List.fold_left2 (unify ~sr) tve ts1 ts2
       with Type_error (_,_) | Invalid_argument _ ->
@@ -59,11 +57,9 @@ and occurs tve var1 typ2 =
   let open Type in
 
   match typ2.node with
-  (*
-  | Integer _
+  | Integer _ -> false
   | String -> false
-  *)
-  | Integer -> false
+  | Name _ -> false
   | Tuple ts -> List.exists (occurs tve var1) ts
   | Arrow (lhs, rhs) -> occurs tve var1 lhs || occurs tve var1 rhs
   | Variable var2 ->

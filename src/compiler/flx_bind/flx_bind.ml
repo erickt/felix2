@@ -26,11 +26,10 @@ let unify ~sr tve typ1 typ2 =
   with Flx_unify.Unification_failed -> 
     raise (Error (sr, Unification_failed (typ1, typ2)))
 
-  (*
+
 let bind_int_kind = function
   | Ast_type.Int_int -> Type.Int
   | Ast_type.Int_uint -> Type.Uint
-  *)
 
 
 let bind_type env tve typ =
@@ -44,21 +43,13 @@ let bind_type env tve typ =
       env, tve, typ
 
   (* Bind integer types. *)
-  (*
   | Int int_kind -> env, tve, Type.integer ~sr (bind_int_kind int_kind)
-  *)
-  | Int _ -> env, tve, Type.integer ~sr ()
-  | Name "int" -> env, tve, Type.integer ~sr ()
-  (*
   | Name "int" -> env, tve, Type.integer ~sr Type.Int
   | Name "uint" -> env, tve, Type.integer ~sr Type.Uint
-  *)
 
   (* Bind string types. *)
-  (*
   | String -> env, tve, Type.string ~sr ()
   | Name "string" -> env, tve, Type.string ~sr ()
-  *)
 
   | Name name ->
       begin match Flx_env.find env name with
@@ -74,12 +65,8 @@ let bind_literal literal =
   let open Ast_literal in
 
   match node literal with
-  | Int (kind,num) -> Literal.integer num
-  | _ -> error "unsupported"
-  (*
   | Int (kind,num) -> Literal.integer (bind_int_kind kind) num
   | String s -> Literal.string s
-  *)
 
 
 (** Bind an AST expression to a typed expression. *)
@@ -94,10 +81,7 @@ let rec bind_expr env tve expr =
       let typ_lhs = Expr.typ lhs in
       let typ_rhs = Expr.typ rhs in
 
-      let int_typ = Type.integer () in
-      (*
       let int_typ = Type.integer Type.Int in
-      *)
 
       let tve = unify ~sr:(Expr.sr lhs) tve typ_lhs int_typ in
       let tve = unify ~sr:(Expr.sr rhs) tve typ_rhs int_typ in
