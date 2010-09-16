@@ -42,6 +42,12 @@ module Type :
     (** Return the unit type. *)
     val unit: ?sr:Flx_srcref.t -> unit -> t
 
+    (** Recursively map a function over a type. Depth first. *)
+    val map: (t -> t) -> t -> t
+
+    (** Recursively iterate a function over a type. Depth first. *)
+    val iter: (t -> unit) -> t -> unit
+
     (** Print a type. *)
     val print: Format.formatter -> t -> unit
 

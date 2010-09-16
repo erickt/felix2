@@ -46,6 +46,12 @@ module Type :
     (** Return the unit type. *)
     val unit: ?sr:Flx_srcref.t -> unit -> t
 
+    (** Recursively map a function over a type. Depth first. *)
+    val map: (t -> t) -> t -> t
+
+    (** Recursively iterate a function over a type. Depth first. *)
+    val iter: (t -> unit) -> t -> unit
+
     (** Print a type. *)
     val print: Format.formatter -> t -> unit
 
@@ -92,6 +98,31 @@ module Type :
 
     (** Return the arrow type. *)
     let arrow ?sr lhs rhs = make ?sr (Arrow (lhs, rhs))
+
+    (** Recursively map a function over a type. Depth first. *)
+    let rec map f typ =
+      match typ.node with
+      | Variable _ -> f typ
+      | Integer _ -> f typ
+      | String -> f typ
+      | Name _ -> f typ
+      | Tuple ts -> f (tuple ~sr:typ.sr (List.map f ts))
+      | Arrow (lhs, rhs) -> f (arrow ~sr:typ.sr (f lhs) (f rhs))
+
+    (** Recursively iterate a function over a type. Depth first. *)
+    let rec iter f typ =
+      match typ.node with
+      | Variable _ -> f typ
+      | Integer _ -> f typ
+      | String -> f typ
+      | Name _ -> f typ
+      | Tuple ts ->
+          List.iter f ts;
+          f typ
+      | Arrow (lhs, rhs) ->
+          f lhs;
+          f rhs;
+          f typ
 
     let rec print_node ppf = function
       | Variable var -> print_variant1 ppf "Variable" pp_print_int var
