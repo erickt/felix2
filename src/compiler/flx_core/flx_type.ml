@@ -12,7 +12,7 @@ module Type :
       | Int
       | Uint
 
-    type t = private { sr: Flx_srcref.t; node: node }
+    type t = private { node: node }
 
     and node =
       | Variable of int
@@ -22,29 +22,26 @@ module Type :
       | Tuple of t list
       | Arrow of t * t
 
-    (** Make a type. *)
-    val make: ?sr:Flx_srcref.t -> node -> t
-
     (** Return a type variable. *)
-    val variable: ?sr:Flx_srcref.t -> int -> t
+    val variable: int -> t
 
     (** Return the int type. *)
-    val integer: ?sr:Flx_srcref.t -> int_kind -> t
+    val integer: int_kind -> t
 
     (** Return the string type. *)
-    val string: ?sr:Flx_srcref.t -> unit -> t
+    val string: unit -> t
 
     (** Return an abstract named type. *)
-    val name: ?sr:Flx_srcref.t -> string -> t
+    val name: string -> t
 
     (** Return the arrow type. *)
-    val arrow: ?sr:Flx_srcref.t -> t -> t -> t
+    val arrow: t -> t -> t
 
     (** Return a tuple type. *)
-    val tuple: ?sr:Flx_srcref.t -> t list -> t
+    val tuple: t list -> t
 
     (** Return the unit type. *)
-    val unit: ?sr:Flx_srcref.t -> unit -> t
+    val unit: unit -> t
 
     (** Recursively map a function over a type. Depth first. *)
     val map: (t -> t) -> t -> t
@@ -59,13 +56,13 @@ module Type :
     val print_int_kind: Format.formatter -> int_kind -> unit
 
     (** Test the equality of two types. *)
-    val equals: t -> t -> bool
+    val equal: t -> t -> bool
   end = struct
     type int_kind =
       | Int
       | Uint
 
-    type t = { sr: Flx_srcref.t; node: node }
+    type t = { node: node }
 
     and node =
       | Variable of int
@@ -76,28 +73,28 @@ module Type :
       | Arrow of t * t
 
     (** Make a type. *)
-    let make ?(sr=Flx_srcref.dummy_sr) node = { sr; node }
+    let make node = { node }
 
     (** Return a type variable. *)
-    let variable ?sr var = make ?sr (Variable var)
+    let variable var = make (Variable var)
 
     (** Return the int type. *)
-    let integer ?sr kind = make ?sr (Integer kind)
+    let integer kind = make (Integer kind)
 
     (** Return the string type. *)
-    let string ?sr () = make ?sr String
+    let string () = make String
 
     (** Return a type alias. *)
-    let name ?sr s = make ?sr (Name s)
+    let name name = make (Name name)
 
     (** Return a tuple type. *)
-    let tuple ?sr ts = make ?sr (Tuple ts)
+    let tuple typs = make (Tuple typs)
 
     (** Return the unit type. *)
-    let unit ?sr () = tuple ?sr []
+    let unit () = tuple []
 
     (** Return the arrow type. *)
-    let arrow ?sr lhs rhs = make ?sr (Arrow (lhs, rhs))
+    let arrow lhs rhs = make (Arrow (lhs, rhs))
 
     (** Recursively map a function over a type. Depth first. *)
     let rec map f typ =
@@ -106,8 +103,8 @@ module Type :
       | Integer _ -> f typ
       | String -> f typ
       | Name _ -> f typ
-      | Tuple ts -> f (tuple ~sr:typ.sr (List.map f ts))
-      | Arrow (lhs, rhs) -> f (arrow ~sr:typ.sr (f lhs) (f rhs))
+      | Tuple ts -> f (tuple (List.map f ts))
+      | Arrow (lhs, rhs) -> f (arrow (f lhs) (f rhs))
 
     (** Recursively iterate a function over a type. Depth first. *)
     let rec iter f typ =
@@ -124,7 +121,12 @@ module Type :
           f rhs;
           f typ
 
-    let rec print_node ppf = function
+    (** Print a type. *)
+    let rec print ppf { node } =
+      print_node ppf node
+
+    (** Print a type node. *)
+    and print_node ppf = function
       | Variable var -> print_variant1 ppf "Variable" pp_print_int var
       | Integer k -> print_variant1 ppf "Integer" print_int_kind k
       | String -> print_variant0 ppf "String"
@@ -137,14 +139,6 @@ module Type :
       | Int -> print_variant0 ppf "Int"
       | Uint -> print_variant0 ppf "Uint"
 
-    (** Print a type. *)
-    and print ppf { sr; node } =
-      (*
-      print_record2 ppf
-        "sr" Flx_srcref.print sr
-        "node" print_node node
-      *)
-      print_node ppf node
 
     (** Test the equality of two types. *)
     let equal typ1 typ2 =

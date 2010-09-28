@@ -36,12 +36,12 @@ let rec substitute tve typ =
       | None -> typ
       end
 
-  | Tuple typs -> tuple ~sr:typ.sr (List.map (substitute tve) typs)
+  | Tuple typs -> tuple (List.map (substitute tve) typs)
 
   | Arrow (lhs, rhs) ->
       let lhs = substitute tve lhs in
       let rhs = substitute tve rhs in
-      arrow ~sr:typ.sr lhs rhs
+      arrow lhs rhs
 
   | _ -> typ
 

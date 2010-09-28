@@ -22,7 +22,7 @@ let error ?(sr=Flx_srcref.dummy_sr) format =
 
 (** Wrap unification to re-raise with our types. *)
 let unify ~sr tve typ1 typ2 =
-  try Flx_unify.unify ~sr tve typ1 typ2
+  try Flx_unify.unify tve typ1 typ2
   with Flx_unify.Unification_failed -> 
     raise (Error (sr, Unification_failed (typ1, typ2)))
 
@@ -35,7 +35,6 @@ let bind_int_kind = function
 let bind_type env tve typ =
   let open Ast_type in
 
-  let sr = sr typ in
   match node typ with
   (* Unknowns are transformed into free type variables. *)
   | Unknown ->
@@ -43,21 +42,21 @@ let bind_type env tve typ =
       env, tve, typ
 
   (* Bind integer types. *)
-  | Int int_kind -> env, tve, Type.integer ~sr (bind_int_kind int_kind)
-  | Name "int" -> env, tve, Type.integer ~sr Type.Int
-  | Name "uint" -> env, tve, Type.integer ~sr Type.Uint
+  | Int int_kind -> env, tve, Type.integer (bind_int_kind int_kind)
+  | Name "int" -> env, tve, Type.integer Type.Int
+  | Name "uint" -> env, tve, Type.integer Type.Uint
 
   (* Bind string types. *)
-  | String -> env, tve, Type.string ~sr ()
-  | Name "string" -> env, tve, Type.string ~sr ()
+  | String -> env, tve, Type.string ()
+  | Name "string" -> env, tve, Type.string ()
 
   | Name name ->
       begin match Flx_env.find env name with
-      | None -> error ~sr "Cannot find type named \"%s\"" name
+      | None -> error ~sr:(sr typ) "Cannot find type named \"%s\"" name
       | Some typ -> env, tve, typ
       end
 
-  | _ -> error ~sr "Cannot bind type yet:@ %a" Ast_type.print typ
+  | _ -> error ~sr:(sr typ) "Cannot bind type yet:@ %a" Ast_type.print typ
 
 
 (** Bind an AST literal to a typed literal. *)

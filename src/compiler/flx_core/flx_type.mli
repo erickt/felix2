@@ -8,7 +8,7 @@ module Type :
       | Int
       | Uint
 
-    type t = private { sr: Flx_srcref.t; node: node }
+    type t = private { node: node }
 
     and node =
       | Variable of int
@@ -18,29 +18,26 @@ module Type :
       | Tuple of t list
       | Arrow of t * t
 
-    (** Make a type. *)
-    val make: ?sr:Flx_srcref.t -> node -> t
-
     (** Return a type variable. *)
-    val variable: ?sr:Flx_srcref.t -> int -> t
+    val variable: int -> t
 
     (** Return the int type. *)
-    val integer: ?sr:Flx_srcref.t -> int_kind -> t
+    val integer: int_kind -> t
 
     (** Return the string type. *)
-    val string: ?sr:Flx_srcref.t -> unit -> t
+    val string: unit -> t
 
     (** Return a type alias. *)
-    val name: ?sr:Flx_srcref.t -> string -> t
+    val name: string -> t
 
     (** Return the arrow type. *)
-    val arrow: ?sr:Flx_srcref.t -> t -> t -> t
+    val arrow: t -> t -> t
 
     (** Return a tuple type. *)
-    val tuple: ?sr:Flx_srcref.t -> t list -> t
+    val tuple: t list -> t
 
     (** Return the unit type. *)
-    val unit: ?sr:Flx_srcref.t -> unit -> t
+    val unit: unit -> t
 
     (** Recursively map a function over a type. Depth first. *)
     val map: (t -> t) -> t -> t

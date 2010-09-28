@@ -3,8 +3,8 @@ open Flx_type
 exception Unification_failed
 
 (** Unify two types together. *)
-let rec unify ~sr tve typ1 typ2 =
-  unify' ~sr tve (tvchase tve typ1) (tvchase tve typ2)
+let rec unify tve typ1 typ2 =
+  unify' tve (tvchase tve typ1) (tvchase tve typ2)
 
 (** Chase through a substitution 'shallowly': stop at the last equivalent type
  * variable. *)
@@ -20,7 +20,7 @@ and tvchase tve typ =
   | _ -> typ
 
 (** If either typ1 or typ2 are type variables, they must be unbound. *)
-and unify' ~sr tve typ1 typ2 =
+and unify' tve typ1 typ2 =
   let open Type in
 
   match typ1.node, typ2.node with
@@ -28,17 +28,17 @@ and unify' ~sr tve typ1 typ2 =
   | String, String -> tve
   | Name s1, Name s2 when s1 = s2 -> tve
   | Tuple ts1, Tuple ts2 ->
-      begin try List.fold_left2 (unify ~sr) tve ts1 ts2
+      begin try List.fold_left2 unify tve ts1 ts2
       with Type_error (_,_) | Invalid_argument _ ->
         raise Unification_failed
       end
   | Arrow (lhs1,rhs1), Arrow (lhs2,rhs2) ->
-      unify ~sr (unify ~sr tve rhs1 rhs2) lhs1 lhs2
-  | Variable var1, _ -> unify_free_variable ~sr tve var1 typ2
-  | _, Variable var2 -> unify_free_variable ~sr tve var2 typ1
+      unify (unify tve rhs1 rhs2) lhs1 lhs2
+  | Variable var1, _ -> unify_free_variable tve var1 typ2
+  | _, Variable var2 -> unify_free_variable tve var2 typ1
   | _, _ -> raise Unification_failed
 
-and unify_free_variable ~sr tve var1 typ2 =
+and unify_free_variable tve var1 typ2 =
   let open Type in
 
   match typ2.node with
@@ -68,5 +68,5 @@ and occurs tve var1 typ2 =
       | Some typ2 -> occurs tve var1 typ2
       end
   (*
-  | _ -> error ~sr:(sr typ2) "occurs does not support %a yet" print typ2
+  | _ -> error "occurs does not support %a yet" print typ2
   *)
