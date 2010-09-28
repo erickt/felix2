@@ -52,7 +52,7 @@ module Type :
     val print: Format.formatter -> t -> unit
 
     (** Test the equality of two types. *)
-    val equals: t -> t -> bool
+    val equal: t -> t -> bool
   end
 
 module Literal :

@@ -147,7 +147,7 @@ module Type :
       print_node ppf node
 
     (** Test the equality of two types. *)
-    let equals typ1 typ2 =
+    let equal typ1 typ2 =
       let rec aux typ1 typ2 =
         match typ1.node, typ2.node with
         | Variable var1, Variable var2 -> var1 = var2
