@@ -57,6 +57,12 @@ module Type :
 
     (** Test the equality of two types. *)
     val equal: t -> t -> bool
+
+    (** Compare two types. *)
+    val compare: t -> t -> int
+
+    (** Return a hash of the type. *)
+    val hash: t -> int
   end = struct
     type int_kind =
       | Int
@@ -154,6 +160,12 @@ module Type :
         | _, _ -> false
       in
       try aux typ1 typ2 with Invalid_argument _ -> false
+
+    (** Compare two types. *)
+    let compare = Pervasives.compare
+
+    (** Return a hash of the type. *)
+    let hash = Hashtbl.hash
   end
 
 module Literal =

@@ -50,6 +50,12 @@ module Type :
 
     (** Test the equality of two types. *)
     val equal: t -> t -> bool
+
+    (** Compare two types. *)
+    val compare: t -> t -> int
+
+    (** Return a hash of the type. *)
+    val hash: t -> int
   end
 
 module Literal :
