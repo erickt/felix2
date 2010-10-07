@@ -77,6 +77,9 @@ module Literal :
     (** Make a literal integer. *)
     val integer: int_kind -> Big_int.big_int -> t
 
+    (** Make a literal 32 bit integer *)
+    val int32: int32 -> t
+
     (** Make a literal string. *)
     val string: string -> t
 
@@ -187,6 +190,7 @@ and Stmt :
     type node =
       | Noop of string
       | Value of name * Expr.t
+      | GlobalVariable of name * Expr.t
       | Curry of name * Lambda.t
       | Return of Expr.t
 
@@ -207,6 +211,9 @@ and Stmt :
 
     (** Return a value definition statement. *)
     val value: ?sr:Flx_srcref.t -> name -> Expr.t -> t
+
+    (** Return a global variable statement. *)
+    val global_variable: ?sr:Flx_srcref.t -> name -> Expr.t -> t
 
     (** Return a curry-able function definition statement. *)
     val curry: ?sr:Flx_srcref.t -> name -> Lambda.t -> t

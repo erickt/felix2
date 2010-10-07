@@ -192,6 +192,9 @@ module Literal =
     (** Make a literal integer. *)
     let integer kind num = make (Integer (kind, num))
 
+    (** Make a literal 32 bit integer *)
+    let int32 num = make (Integer (Type.Int, Big_int.big_int_of_int32 num))
+
     (** Make a literal string. *)
     let string s = make (String s)
 
@@ -437,6 +440,7 @@ and Stmt :
     type node =
       | Noop of string
       | Value of name * Expr.t
+      | GlobalVariable of name * Expr.t
       | Curry of name * Lambda.t
       | Return of Expr.t
 
@@ -458,6 +462,9 @@ and Stmt :
     (** Return a value definition statement. *)
     val value: ?sr:Flx_srcref.t -> name -> Expr.t -> t
 
+    (** Return a global variable statement. *)
+    val global_variable: ?sr:Flx_srcref.t -> name -> Expr.t -> t
+
     (** Return a curry-able function definition statement. *)
     val curry: ?sr:Flx_srcref.t -> name -> Lambda.t -> t
 
@@ -472,6 +479,7 @@ and Stmt :
     and node =
       | Noop of string
       | Value of name * Expr.t
+      | GlobalVariable of name * Expr.t
       | Curry of name * Lambda.t
       | Return of Expr.t
 
@@ -490,6 +498,10 @@ and Stmt :
     (** Return a value definition statement. *)
     let value ?sr name expr = make ?sr (Expr.typ expr) (Value (name, expr))
 
+    (** Return a global variable statement. *)
+    let global_variable ?sr name expr =
+      make ?sr (Expr.typ expr) (GlobalVariable (name, expr))
+
     (** Return a no-op statement. *)
     let noop ?sr s = make ?sr (Type.unit ()) (Noop s)
 
@@ -505,6 +517,10 @@ and Stmt :
       | Noop s -> print_variant1 ppf "Noop" print_string s
       | Value (name,expr) ->
           print_variant2 ppf "Value"
+            print_string name
+            Expr.print expr
+      | GlobalVariable (name,expr) ->
+          print_variant2 ppf "GlobalVariable"
             print_string name
             Expr.print expr
       | Curry (name,lambda) ->

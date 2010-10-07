@@ -6,10 +6,12 @@ open Format
 (* Preparse all the imported libraries. *)
 let parse_imports parser_state imports handle_stmt =
   List.fold_left begin fun parser_state name ->
+    printf "parse_imports: %s@." name;
+    let handle_stmt = handle_stmt ~name ~print:false in
     Flx_parse.parse_file
       ~include_dirs:!Options.include_dirs
       parser_state
-      (fun _ sr stmt -> handle_stmt ~print:false sr stmt)
+      (fun _ sr stmt -> handle_stmt sr stmt)
       name
   end
   parser_state
@@ -45,6 +47,8 @@ let parse_channel ~name ~print parser_state handle_stmt channel args =
    * error later. If we do, we'll use this parser state to recover the latest
    * syntax. *)
   let old_parser_state = ref parser_state in
+
+  let handle_stmt = handle_stmt ~name in
 
   (* Wrap handling a statement so we can tell when we've finished processing a
    * statement. *)
@@ -163,17 +167,17 @@ let parse_channel ~name ~print parser_state handle_stmt channel args =
 
 
 (* Parse a scheme block and print it out. *)
-let print_scheme ~print sr ocs =
+let print_scheme ~name ~print _ ocs =
   if print then printf "PARSED: %s@." (Ocs_print.string_of_ocs ocs);
   ()
 
 (* Parse a sexp block and print it out. *)
-let print_sexp ~print sr ocs =
+let print_sexp ~name ~print _ ocs =
   if print then printf "PARSED: %a@." Flx_sexp.print (Flx_sexp.of_ocs ocs);
   ()
 
 (* Parse a s-expression and print it out. *)
-let print_ast ~print sr ocs =
+let print_ast ~name ~print _ ocs =
   Flx_profile.call "Flxi.print_ast" begin fun () ->
     let open Flx_ast in
     let sexp = Flx_sexp.of_ocs ocs in
@@ -182,11 +186,11 @@ let print_ast ~print sr ocs =
   end
 
 (* Parse a type tree and print it out. *)
-let print_typecheck =
+let print_typecheck ~name =
   let env = ref Flx_env.empty in
   let tve = ref Flx_tve.empty in
 
-  fun ~print sr ocs ->
+  fun ~print _ ocs ->
   Flx_profile.call "Flxi.print_ast" begin fun () ->
     let open Flx_type in
     let sexp = Flx_sexp.of_ocs ocs in
@@ -203,6 +207,49 @@ let print_typecheck =
     ()
   end
 
+(* *)
+let print_codegen ~name =
+  printf "print_codegen: %s@." name;
+
+  let env = ref Flx_env.empty in
+  let tve = ref Flx_tve.empty in
+  let codegen_state = ref (Flx_codegen.make_state name 3) in
+
+  fun ~print _ ocs ->
+  Flx_profile.call "Flxi.run_code" begin fun () ->
+    let open Flx_type in
+    let sexp = Flx_sexp.of_ocs ocs in
+    let stmt = Flx_sexp.to_stmt sexp in
+    let env', tve', stmt = Flx_bind.bind_stmt !env !tve stmt in
+    env := env';
+    tve := tve';
+
+    let codegen_state' =
+      (* Don't generate no-ops. *)
+      match Stmt.node stmt with
+      | Stmt.Noop _ -> !codegen_state
+      | _ ->
+        let codegen_state', _ =
+          Flx_codegen.codegen_toplevel_stmt
+            !codegen_state
+            stmt
+        in
+
+        Llvm.dump_module codegen_state'.Flx_codegen.the_module;
+
+        codegen_state'
+    in
+
+    codegen_state := codegen_state';
+
+    ()
+  end
+
+(* *)
+let print_execute ~name ~print _ ocs =
+  assert false
+
+
 let main () =
   Options.parse_args "Usage: flxi <options> <files>\nOptions are:";
 
@@ -215,6 +262,8 @@ let main () =
     | Options.Parse_sexp -> print_sexp
     | Options.Parse_ast -> print_ast
     | Options.Typecheck -> print_typecheck
+    | Options.Generate_code -> print_codegen
+    | Options.Execute_code -> print_execute
   in
 
   (* Parse all the imported files. *)

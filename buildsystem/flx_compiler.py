@@ -48,6 +48,16 @@ def build_flx_bind(phase):
             build_flx_parse(phase)],
         packages=['batteries'])
 
+def build_flx_codegen(phase):
+    path = Path('src', 'compiler', 'flx_codegen')
+    return phase.ocaml.build_lib(path / 'flx_codegen',
+        srcs=Path.glob(path / '*.ml{,i}'),
+        includes=[phase.llvm_config.ocaml_libdir()],
+        libs=[
+            build_flx_misc(phase),
+            build_flx_core(phase)],
+        packages=['batteries'])
+
 def build_flx_drivers(phase):
     path = Path('src/compiler/drivers')
 
@@ -66,7 +76,16 @@ def build_flx_drivers(phase):
                 build_flx_misc(phase),
                 build_flx_core(phase),
                 build_flx_parse(phase),
-                build_flx_bind(phase)],
+                build_flx_bind(phase),
+                build_flx_codegen(phase)],
+            external_libs=[
+                'batteries',
+                'threads',
+                'llvm',
+                'llvm_analysis',
+                'llvm_executionengine',
+                'llvm_scalar_opts',
+                'llvm_target'],
             flags=['-thread'],
-            external_libs=['batteries', 'threads'],
-            packages=['batteries']) }
+            packages=['batteries'],
+            cc=phase.cxx.static.compiler.gcc.exe) }
