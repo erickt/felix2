@@ -25,7 +25,7 @@ exception End_of_file
 open Batteries
 open Dyp
 open Lexing
-open Printf
+open Format
 open Ocs_types
 open Flx_token
 open Flx_exceptions
@@ -159,8 +159,6 @@ let xsr { Flx_srcref.filename; start_line; start_col; end_line; end_col } =
       Sint start_line;
       Sstring filename ]
 
-let buffer_add_ocs b r = Ocs_print.print_to_buffer b false r
-
 let scheme_lex sr (s:string):sval =
   let sr = Flx_srcref.to_string sr in
   let inp = Ocs_port.string_input_port s in
@@ -238,9 +236,10 @@ let define_scheme sr dyp dssl_record dssl name prio rhs scm =
     | _ ->
         let age = ref pr_age in
         let b = Buffer.create 200 in
+        let to_b = formatter_of_buffer b in
 
         if !(dyp.global_data.pdebug) then begin
-          bprintf b "Reducing Rule %s for %s[%s], scm=%s\n"
+          fprintf to_b "Reducing Rule %s for %s[%s], scm=%s\n"
             (string_of_int pr_age)
             name
             priority
@@ -267,7 +266,7 @@ let define_scheme sr dyp dssl_record dssl name prio rhs scm =
               in
 
               if !(dyp.global_data.pdebug) then begin
-                bprintf b "Arg %d = %a\n" n buffer_add_ocs s;
+                fprintf to_b "Arg %d = %s\n" n (Ocs_print.string_of_ocs s);
               end;
 
               let v1 = Ocs_sym.get_symbol ("_" ^ string_of_int n) in
