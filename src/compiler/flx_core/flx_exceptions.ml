@@ -18,3 +18,10 @@ let client_errorN srs format =
 let client_error sr format = client_errorN [sr] format
 
 let client_error2 sr1 sr2 format = client_errorN [sr1; sr2] format
+
+(** Raised when there's an unrecoverable internal compiler error. *)
+exception Internal_error of Flx_srcref.t list * string
+
+(** Raise an internal error. *)
+let internal_error srs format =
+  Format.ksprintf (fun s -> raise (Internal_error (srs, s))) format

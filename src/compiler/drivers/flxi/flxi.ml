@@ -101,15 +101,14 @@ let parse_channel ~name ~print parser_state handle_stmt channel args =
 
         Some parser_state
       with
-      (*
-      | Failure s ->
+      | Flx_exceptions.Internal_error (srs, e) ->
           if Printexc.backtrace_status () then begin
             eprintf "%s@." (Printexc.get_backtrace ());
           end;
 
-          printf "Fatal error: %s@." s;
+          print_error "%aInternal error: %s@." print_error_srs srs e;
+
           None
-          *)
 
       | Flx_exceptions.Syntax_error (sr, e) ->
           if Printexc.backtrace_status () then begin
