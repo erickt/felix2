@@ -26,9 +26,14 @@ let add_value ~global state name value =
 (** Convenience function to find a value in the state. *)
 let find_value { values; global_values } name =
   try StringMap.find name values
-
-  (* Fall back on searching global values. *)
-  with Not_found -> StringMap.find name global_values
+  with Not_found ->
+    (* Fall back on searching global values. *)
+    try StringMap.find name global_values
+    with Not_found ->
+      (* We got bigger problems, so error out. *)
+      Flx_exceptions.internal_error
+        []
+        "cannot find a value named '%s'" name
 
 
 (** Generate a unique name for an anonymous value. *)
