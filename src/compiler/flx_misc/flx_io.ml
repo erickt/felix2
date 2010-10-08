@@ -12,7 +12,7 @@ let get_lines input l1' c1 l2' c2 =
 
   let buf = Buffer.create ((l2-l1+4) * 80) in
   let spc () = Buffer.add_char buf ' ' in
-  let star () = Buffer.add_char buf '*' in
+  let caret () = Buffer.add_char buf '^' in
   let nl () = Buffer.add_char buf '\n' in
 
   for i = 1 to l1-1 do ignore (IO.read_line input) done;
@@ -32,7 +32,7 @@ let get_lines input l1' c1 l2' c2 =
         begin
           for i = 1 to n + 2 do spc () done;
           for i = 1 to c1 - 1 do spc () done;
-          for i = c1 to c2 do star () done;
+          for i = c1 to c2 do caret () done;
           nl()
         end
       end
