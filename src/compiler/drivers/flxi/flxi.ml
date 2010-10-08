@@ -63,8 +63,7 @@ let parse_channel ~name ~print parser_state handle_stmt channel args =
     handle_stmt ~print:true sr stmt
   in
 
-  (* Get a file-like object from a buffer. *)
-
+  (* Wrapper to simplify error reporting. *)
   let print_error format =
     Flx_format.ksprintf begin fun s ->
       (* Reset our state. *)
@@ -77,10 +76,17 @@ let parse_channel ~name ~print parser_state handle_stmt channel args =
     end format
   in
 
-
-  let print_error_sr ppf sr =
+  (* Prints the error in the source. *)
+  let print_error_srs ppf srs =
     let file = IO.input_string (Buffer.contents buffer) in
-    Flx_srcref.print_error file ppf sr
+
+    match srs with
+    | [] -> ()
+    | [sr] -> Flx_srcref.print_error file ppf sr
+    | [sr1; sr2] ->
+        let sr = Flx_srcref.join sr1 sr2 in
+        Flx_srcref.print_error file ppf sr
+    | _ -> ()
   in
 
   (* Loop over each statement until we exit. *)
@@ -110,7 +116,7 @@ let parse_channel ~name ~print parser_state handle_stmt channel args =
             eprintf "%s@." (Printexc.get_backtrace ());
           end;
 
-          print_error "%a%s@." print_error_sr sr e;
+          print_error "%a%s@." print_error_srs [sr] e;
 
           Some !old_parser_state
 
@@ -128,10 +134,7 @@ let parse_channel ~name ~print parser_state handle_stmt channel args =
             eprintf "%s@." (Printexc.get_backtrace ());
           end;
 
-          print_error "%a@.Type error: %s@." print_error_sr sr e;
-
-          (* Ignore the rest of the line. *)
-          Flx_parse.flush_input lexbuf;
+          print_error "%a@.Type error: %s@." print_error_srs [sr] e;
 
           Some !old_parser_state
 
@@ -141,11 +144,10 @@ let parse_channel ~name ~print parser_state handle_stmt channel args =
           end;
 
           print_error "%a@.Type error: %a@."
-            print_error_sr sr
+            print_error_srs [sr]
             Flx_bind.print_error e;
 
           Some !old_parser_state
-
 
       | IO.No_more_input ->
           None
